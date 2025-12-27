@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useGastosStore } from '../stores/gastos'
+import { useAuthStore } from '../stores/auth'
 import { storeToRefs } from 'pinia'
 import { getIcono } from '../utils/icons'
 import {
@@ -15,11 +16,14 @@ import {
   Tag,
   TrendingUp,
   TrendingDown,
+  Edit3,
+  ChevronDown,
 } from 'lucide-vue-next'
 
 const store = useGastosStore()
 const { categoriasGasto, categoriasIngreso, usuarios, metodosPago } = storeToRefs(store)
 const router = useRouter()
+const authStore = useAuthStore()
 
 // Estado del formulario
 const tipo = ref<'gasto' | 'ingreso'>('gasto')
@@ -31,6 +35,7 @@ const metodoPago = ref('')
 const cuotas = ref(1)
 const guardando = ref(false)
 const fechaPersonalizada = ref<Date | null>(null)
+const usarInputManual = ref(false) // false = selector nativo, true = input manual
 
 // Computed
 const esIngreso = computed(() => tipo.value === 'ingreso')
@@ -91,6 +96,21 @@ const colores = computed(() => {
   }
 })
 
+// Formatear número con separadores de miles (formato argentino)
+const formatearMontoInput = (valor: string): string => {
+  const numero = valor.replace(/\D/g, '') // Solo dígitos
+  if (!numero) return ''
+  return new Intl.NumberFormat('es-AR').format(Number(numero))
+}
+
+// Manejador de input para monto
+const onInputMonto = (event: Event) => {
+  const input = event.target as HTMLInputElement
+  const rawValue = input.value.replace(/\D/g, '') // Remover todo excepto dígitos
+  monto.value = rawValue
+  input.value = formatearMontoInput(rawValue)
+}
+
 // Reset categoría cuando cambia el tipo
 watch(tipo, () => {
   categoria.value = ''
@@ -113,8 +133,10 @@ onMounted(() => {
     cuotas.value = borrador.cuotas || 1
   } else {
     // Defaults inteligentes
-    if (usuarios.value.length > 0) pagadoPor.value = usuarios.value[0].id
-    if (metodosPago.value.length > 0) metodoPago.value = metodosPago.value[0]
+    const primerUsuario = usuarios.value[0]
+    if (primerUsuario) pagadoPor.value = primerUsuario.id
+    const primerMetodo = metodosPago.value[0]
+    if (primerMetodo) metodoPago.value = primerMetodo
   }
 })
 
@@ -136,7 +158,7 @@ const formatearFecha = (fecha: Date) => {
   const year = fecha.getFullYear()
   const month = String(fecha.getMonth() + 1).padStart(2, '0')
   const day = String(fecha.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
+  return `${day}/${month}/${year}` // Formato argentino DD/MM/YYYY
 }
 
 const fechaInput = computed({
@@ -146,30 +168,82 @@ const fechaInput = computed({
   },
   set: (val: string) => {
     if (val) {
-      // Parsear correctamente la fecha en formato YYYY-MM-DD
-      const parts = val.split('-').map(Number)
+      // Parsear formato DD/MM/YYYY
+      const parts = val.split('/').map(Number)
       if (parts.length === 3 && parts[0] && parts[1] && parts[2]) {
-        const year = parts[0]
+        const day = parts[0]
         const month = parts[1]
-        const day = parts[2]
+        const year = parts[2]
         const fecha = new Date(year, month - 1, day, 12, 0, 0)
         fechaPersonalizada.value = fecha
       }
     } else {
       fechaPersonalizada.value = null
     }
+  },
+})
+
+// Manejador de input manual de fecha
+const onInputFechaManual = (event: Event) => {
+  const input = event.target as HTMLInputElement
+  let value = input.value.replace(/\D/g, '') // Solo dígitos
+
+  // Formatear automáticamente DD/MM/YYYY mientras escribe
+  if (value.length >= 2) {
+    value = value.slice(0, 2) + '/' + value.slice(2)
   }
+  if (value.length >= 5) {
+    value = value.slice(0, 5) + '/' + value.slice(5, 9)
+  }
+
+  input.value = value
+
+  // Parsear y actualizar fechaPersonalizada si la fecha es válida
+  if (value.length === 10) {
+    const [day, month, year] = value.split('/').map(Number)
+    if (day && month && year && day <= 31 && month <= 12) {
+      fechaPersonalizada.value = new Date(year, month - 1, day, 12, 0, 0)
+    }
+  }
+}
+
+// Función para formatear fecha para input type="date" (YYYY-MM-DD)
+const formatearFechaNativa = (fecha: Date) => {
+  const year = fecha.getFullYear()
+  const month = String(fecha.getMonth() + 1).padStart(2, '0')
+  const day = String(fecha.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+// Computed para input nativo type="date"
+const fechaNativaInput = computed({
+  get: () => {
+    if (!fechaPersonalizada.value) return ''
+    return formatearFechaNativa(fechaPersonalizada.value)
+  },
+  set: (val: string) => {
+    if (val) {
+      const parts = val.split('-').map(Number)
+      if (parts.length === 3 && parts[0] && parts[1] && parts[2]) {
+        const year = parts[0]
+        const month = parts[1]
+        const day = parts[2]
+        fechaPersonalizada.value = new Date(year, month - 1, day, 12, 0, 0)
+      }
+    } else {
+      fechaPersonalizada.value = null
+    }
+  },
 })
 
 const guardar = async () => {
   if (!monto.value || !descripcion.value) return
 
   // Validaciones y defaults
-  const catFinal =
-    categoria.value ||
-    (categoriasActivas.value.length > 0 ? categoriasActivas.value[0].nombre : 'Varios')
-  const userFinal =
-    pagadoPor.value || (usuarios.value.length > 0 ? usuarios.value[0].id : 'anonimo')
+  const primeraCategoria = categoriasActivas.value[0]
+  const catFinal = categoria.value || (primeraCategoria ? primeraCategoria.nombre : 'Varios')
+  const primerUsuarioGuardar = usuarios.value[0]
+  const userFinal = pagadoPor.value || (primerUsuarioGuardar ? primerUsuarioGuardar.id : 'anonimo')
   const metodoFinal = metodoPago.value || 'Efectivo'
 
   guardando.value = true
@@ -240,9 +314,10 @@ const guardar = async () => {
             >$</span
           >
           <input
-            v-model="monto"
-            type="number"
-            inputmode="decimal"
+            :value="formatearMontoInput(monto)"
+            @input="onInputMonto"
+            type="text"
+            inputmode="numeric"
             placeholder="0"
             autofocus
             class="w-full bg-transparent text-center text-6xl font-black placeholder-gray-200 outline-none caret-current transition-colors"
@@ -273,19 +348,59 @@ const guardar = async () => {
 
       <!-- Fecha -->
       <div class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
-        <label
-          class="flex items-center gap-1 text-xs font-bold text-gray-400 uppercase tracking-wide mb-2"
-        >
-          <Calendar :size="14" /> Fecha
-        </label>
-        <input
-          v-model="fechaInput"
-          type="date"
-          class="w-full text-lg font-bold text-gray-800 outline-none"
-          :class="fechaPersonalizada ? '' : 'text-gray-400'"
-        />
-        <p class="text-xs text-gray-500 mt-2">
-          {{ fechaPersonalizada ? 'Fecha personalizada seleccionada' : 'Por defecto: fecha actual del mes visible' }}
+        <div class="flex items-center justify-between mb-3">
+          <label
+            class="flex items-center gap-1 text-xs font-bold text-gray-400 uppercase tracking-wide"
+          >
+            <Calendar :size="14" /> Fecha
+          </label>
+
+          <!-- Toggle para cambiar tipo de input -->
+          <button
+            @click="usarInputManual = !usarInputManual"
+            type="button"
+            class="flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-gray-700 px-2.5 py-1.5 rounded-lg hover:bg-gray-100 transition-all active:scale-95"
+          >
+            <component :is="usarInputManual ? Calendar : Edit3" :size="14" />
+            <span>{{ usarInputManual ? 'Calendario' : 'Escribir' }}</span>
+          </button>
+        </div>
+
+        <!-- Input manual DD/MM/YYYY -->
+        <div v-if="usarInputManual" class="relative">
+          <input
+            :value="fechaInput"
+            @input="onInputFechaManual"
+            type="text"
+            inputmode="numeric"
+            placeholder="DD/MM/YYYY"
+            maxlength="10"
+            class="w-full text-lg font-bold text-gray-800 outline-none pr-10"
+            :class="fechaPersonalizada ? '' : 'text-gray-400'"
+          />
+          <Edit3
+            v-if="!fechaPersonalizada"
+            :size="16"
+            class="absolute right-0 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none"
+          />
+        </div>
+
+        <!-- Input nativo type="date" -->
+        <div v-else class="relative">
+          <input
+            v-model="fechaNativaInput"
+            type="date"
+            class="w-full text-lg font-bold text-gray-800 outline-none"
+            :class="fechaPersonalizada ? '' : 'text-gray-400'"
+          />
+        </div>
+
+        <p class="text-xs text-gray-500 mt-2 flex items-center gap-1">
+          <span v-if="fechaPersonalizada" class="inline-flex items-center gap-1">
+            <Check :size="12" class="text-green-600" />
+            {{ formatearFecha(fechaPersonalizada) }}
+          </span>
+          <span v-else class="text-gray-400"> Por defecto: fecha actual del mes visible </span>
         </p>
       </div>
 
@@ -300,7 +415,7 @@ const guardar = async () => {
           <button
             @click="irAConfig('/categories')"
             class="text-xs font-bold px-2 py-1 rounded-md transition-colors"
-            :class="esIngreso ? 'text-green-600 bg-green-50' : 'text-blue-600 bg-blue-50'"
+            :class="esIngreso ? 'text-green-600 bg-green-50' : 'text-gray-500 bg-blue-50'"
           >
             Editar
           </button>
@@ -333,61 +448,110 @@ const guardar = async () => {
 
       <!-- Solo para GASTOS: Quién pagó y Método de pago -->
       <template v-if="!esIngreso">
-        <div class="grid grid-cols-2 gap-4">
-          <!-- Quién pagó -->
-          <div class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
+        <!-- Quién pagó -->
+        <div>
+          <div class="flex justify-between items-end mb-3">
             <label
-              class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-1"
+              class="text-xs font-bold text-gray-400 uppercase tracking-wide flex items-center gap-1"
             >
               <Users :size="14" /> Quién pagó
             </label>
-            <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-              <button
-                v-for="user in usuarios"
-                :key="user.id"
-                @click="pagadoPor = user.id"
-                class="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all relative"
-                :class="
-                  pagadoPor === user.id
-                    ? 'border-black opacity-100 scale-110'
-                    : 'border-transparent opacity-40 grayscale hover:opacity-100'
-                "
-              >
-                <img
-                  v-if="user.foto"
-                  :src="user.foto"
-                  class="w-full h-full rounded-full object-cover"
-                />
-                <component v-else :is="getIcono(user.emoji)" :size="20" />
-                <div
-                  v-if="pagadoPor === user.id"
-                  class="absolute -bottom-1 -right-1 bg-black text-white rounded-full p-0.5"
-                >
-                  <Check :size="8" stroke-width="4" />
-                </div>
-              </button>
-            </div>
           </div>
 
-          <!-- Método de pago -->
-          <div class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm relative">
+          <div class="flex flex-wrap gap-2">
+            <button
+              v-for="user in usuarios"
+              :key="user.id"
+              @click="pagadoPor = user.id"
+              class="flex items-center gap-2 px-4 py-3 rounded-2xl border-2 transition-all active:scale-95"
+              :class="
+                pagadoPor === user.id
+                  ? 'bg-black text-white border-black shadow-lg'
+                  : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+              "
+            >
+              <div
+                class="w-5 h-5 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center flex-shrink-0"
+              >
+                <img
+                  v-if="
+                    user.foto ||
+                    (user.id === authStore.userProfile?.uid && authStore.userProfile?.photoURL)
+                  "
+                  :src="
+                    user.id === authStore.userProfile?.uid && authStore.userProfile?.photoURL
+                      ? authStore.userProfile.photoURL
+                      : user.foto
+                  "
+                  class="w-full h-full object-cover"
+                  :alt="user.nombre"
+                />
+                <component
+                  v-else
+                  :is="getIcono(user.emoji)"
+                  :size="12"
+                  stroke-width="2.5"
+                  :class="pagadoPor === user.id ? 'text-white' : 'text-gray-500'"
+                />
+              </div>
+              <span class="text-sm font-bold">{{ user.nombre }}</span>
+            </button>
+
+            <div
+              v-if="usuarios.length === 0"
+              class="w-full text-center py-4 bg-gray-100 rounded-2xl border border-dashed border-gray-300 text-gray-400 text-sm"
+            >
+              No hay usuarios en el tablero.
+            </div>
+          </div>
+        </div>
+
+        <!-- Método de pago -->
+        <div>
+          <div class="flex justify-between items-end mb-3">
             <label
-              class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-2 flex items-center gap-1"
+              class="text-xs font-bold text-gray-400 uppercase tracking-wide flex items-center gap-1"
             >
-              <CreditCard :size="14" /> Método
+              <CreditCard :size="14" /> Método de pago
             </label>
-            <select
-              v-model="metodoPago"
-              class="w-full bg-transparent font-bold text-gray-800 outline-none appearance-none relative z-10 py-1"
+            <button
+              @click="irAConfig('/methods')"
+              class="text-xs font-bold px-2 py-1 rounded-md transition-colors text-gray-500 bg-gray-50 hover:bg-gray-100"
             >
-              <option v-for="m in metodosPago" :key="m" :value="m">{{ m }}</option>
-            </select>
-            <div class="absolute right-4 bottom-5 text-gray-400 pointer-events-none">▼</div>
+              Editar
+            </button>
+          </div>
+
+          <div class="flex flex-wrap gap-2">
+            <button
+              v-for="metodo in metodosPago"
+              :key="metodo"
+              @click="metodoPago = metodo"
+              class="flex items-center gap-2 px-4 py-3 rounded-2xl border-2 transition-all active:scale-95"
+              :class="
+                metodoPago === metodo
+                  ? 'bg-black text-white border-black shadow-lg'
+                  : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+              "
+            >
+              <CreditCard :size="18" stroke-width="2.5" />
+              <span class="text-sm font-bold">{{ metodo }}</span>
+            </button>
+
+            <div
+              v-if="metodosPago.length === 0"
+              class="w-full text-center py-4 bg-gray-100 rounded-2xl border border-dashed border-gray-300 text-gray-400 text-sm"
+            >
+              No hay métodos de pago configurados.
+            </div>
           </div>
         </div>
 
         <!-- Cuotas (solo gastos + solo cuando es Crédito) -->
-        <div v-if="metodoPago === 'Crédito'" class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
+        <div
+          v-if="metodoPago === 'Crédito'"
+          class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm"
+        >
           <label
             class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-2 flex items-center gap-1"
           >
@@ -461,5 +625,16 @@ const guardar = async () => {
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* Ocultar flechas de input number en todos los navegadores */
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type='number'] {
+  -moz-appearance: textfield;
 }
 </style>

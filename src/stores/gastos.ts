@@ -637,8 +637,11 @@ export const useGastosStore = defineStore('gastos', () => {
       if (!agrupados[gasto.categoria]) {
         agrupados[gasto.categoria] = { total: 0, items: [] }
       }
-      agrupados[gasto.categoria].total += gasto.monto
-      agrupados[gasto.categoria].items.push(gasto)
+      const grupo = agrupados[gasto.categoria]
+      if (grupo) {
+        grupo.total += gasto.monto
+        grupo.items.push(gasto)
+      }
     })
 
     return agrupados
@@ -651,8 +654,11 @@ export const useGastosStore = defineStore('gastos', () => {
       if (!agrupados[gasto.pagadoPor]) {
         agrupados[gasto.pagadoPor] = { total: 0, items: [] }
       }
-      agrupados[gasto.pagadoPor].total += gasto.monto
-      agrupados[gasto.pagadoPor].items.push(gasto)
+      const grupo = agrupados[gasto.pagadoPor]
+      if (grupo) {
+        grupo.total += gasto.monto
+        grupo.items.push(gasto)
+      }
     })
 
     return agrupados

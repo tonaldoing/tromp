@@ -184,7 +184,7 @@ const guardarTodo = async () => {
             <input
               type="text"
               inputmode="numeric"
-              :value="formatearValorVisual(valoresLocales[cat.nombre])"
+              :value="formatearValorVisual(valoresLocales[cat.nombre] ?? 0)"
               @input="(e) => onInputDinero(e, cat.nombre)"
               placeholder="0"
               class="w-full bg-transparent border-none p-0 text-xl font-bold text-gray-900 placeholder-gray-200 focus:ring-0 outline-none"

@@ -51,7 +51,7 @@ const formatearDinero = (monto: number) => {
 const getUsuario = (id: string) => {
   const encontrado = usuarios.value.find((u) => u.id === id)
   return (
-    encontrado || { emoji: 'help', color: 'bg-gray-100 text-gray-400 border-gray-200', nombre: '?' }
+    encontrado || { id: '', emoji: 'help', nombre: '?', email: '', foto: '' }
   )
 }
 
@@ -244,7 +244,6 @@ const irAPerfil = () => {
             <div
               v-else
               class="w-12 h-12 rounded-full flex items-center justify-center text-xl border border-gray-100 shadow-sm bg-gray-50 overflow-hidden"
-              :class="getUsuario(mov.pagadoPor).color"
             >
               <HelpCircle
                 v-if="getUsuario(mov.pagadoPor).nombre === '?'"
