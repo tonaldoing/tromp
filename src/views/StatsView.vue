@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useGastosStore } from '../stores/gastos'
 import { storeToRefs } from 'pinia'
 import MonthSelector from '../components/MonthSelector.vue'
@@ -7,6 +8,7 @@ import { getIcono } from '../utils/icons' // Importamos tu helper de iconos
 
 // Iconos Lucide
 import {
+  ArrowLeft,
   Wallet,
   ArrowUpRight,
   ArrowDownLeft,
@@ -14,6 +16,8 @@ import {
   TrendingUp,
   AlertCircle,
 } from 'lucide-vue-next'
+
+const router = useRouter()
 
 const store = useGastosStore()
 const { gastosDelMes, ingresosDelMes } = storeToRefs(store)
@@ -70,7 +74,18 @@ const gastosPorCategoria = computed(() => {
 
 <template>
   <div class="px-5 pt-6 pb-28 bg-gray-50 min-h-screen">
-    <h1 class="text-2xl font-extrabold text-gray-900 mb-6 tracking-tight">Estadísticas</h1>
+    <!-- Header -->
+    <header class="flex items-center gap-4 mb-6">
+      <button
+        @click="router.back()"
+        class="w-10 h-10 flex items-center justify-center bg-white rounded-full border border-gray-200 shadow-sm text-gray-700 active:scale-95 transition-transform"
+      >
+        <ArrowLeft :size="20" />
+      </button>
+      <div class="flex-1">
+        <h1 class="text-2xl font-extrabold text-gray-900 tracking-tight">Estadísticas</h1>
+      </div>
+    </header>
 
     <MonthSelector class="shadow-sm border border-gray-100" />
 

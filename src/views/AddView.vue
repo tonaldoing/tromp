@@ -17,7 +17,6 @@ import {
   TrendingUp,
   TrendingDown,
   Edit3,
-  ChevronDown,
 } from 'lucide-vue-next'
 
 const store = useGastosStore()
@@ -96,19 +95,57 @@ const colores = computed(() => {
   }
 })
 
-// Formatear número con separadores de miles (formato argentino)
+// Formatear número con separadores de miles y decimales (formato argentino)
 const formatearMontoInput = (valor: string): string => {
-  const numero = valor.replace(/\D/g, '') // Solo dígitos
-  if (!numero) return ''
-  return new Intl.NumberFormat('es-AR').format(Number(numero))
+  if (!valor) return ''
+
+  // Separar parte entera y decimal
+  const partes = valor.split('.')
+  const parteEntera = partes[0]?.replace(/\D/g, '') || ''
+  const parteDecimal = partes[1] ? partes[1].replace(/\D/g, '').slice(0, 2) : ''
+
+  if (!parteEntera) return ''
+
+  // Formatear parte entera con separadores de miles
+  const numeroFormateado = new Intl.NumberFormat('es-AR').format(Number(parteEntera))
+
+  // Agregar decimales si existen
+  if (parteDecimal) {
+    return `${numeroFormateado},${parteDecimal}`
+  }
+
+  // Si termina con punto, agregarlo para mostrar que el usuario está escribiendo decimales
+  if (valor.endsWith('.') || valor.endsWith(',')) {
+    return `${numeroFormateado},`
+  }
+
+  return numeroFormateado
 }
 
 // Manejador de input para monto
 const onInputMonto = (event: Event) => {
   const input = event.target as HTMLInputElement
-  const rawValue = input.value.replace(/\D/g, '') // Remover todo excepto dígitos
-  monto.value = rawValue
-  input.value = formatearMontoInput(rawValue)
+  let value = input.value
+
+  // Remover todos los separadores de miles (puntos) y reemplazar coma decimal por punto
+  value = value.replace(/\./g, '').replace(',', '.')
+
+  // Permitir solo números y punto decimal
+  const cleaned = value.replace(/[^\d.]/g, '')
+
+  // Validar formato: números, opcionalmente un punto, y hasta 2 decimales
+  const regex = /^\d*\.?\d{0,2}$/
+  if (!regex.test(cleaned)) {
+    // Si no es válido, mantener el valor anterior
+    input.value = formatearMontoInput(monto.value)
+    return
+  }
+
+  // Guardar valor interno sin formato (con punto decimal)
+  monto.value = cleaned
+
+  // Mostrar valor formateado
+  input.value = formatearMontoInput(cleaned)
 }
 
 // Reset categoría cuando cambia el tipo
@@ -317,7 +354,7 @@ const guardar = async () => {
             :value="formatearMontoInput(monto)"
             @input="onInputMonto"
             type="text"
-            inputmode="numeric"
+            inputmode="decimal"
             placeholder="0"
             autofocus
             class="w-full bg-transparent text-center text-6xl font-black placeholder-gray-200 outline-none caret-current transition-colors"

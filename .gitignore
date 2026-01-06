@@ -34,3 +34,9 @@ coverage
 
 # Vitest
 __screenshots__/
+
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log

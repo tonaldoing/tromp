@@ -5,7 +5,7 @@ import { useGastosStore } from '../stores/gastos'
 import { storeToRefs } from 'pinia'
 import { getIcono } from '../utils/icons'
 import MonthSelector from '../components/MonthSelector.vue'
-import { Calculator, ChevronRight, Save, Loader2, Copy, AlertCircle, CheckCircle2 } from 'lucide-vue-next'
+import { ArrowLeft, Calculator, ChevronRight, Save, Loader2, Copy, AlertCircle, CheckCircle2 } from 'lucide-vue-next'
 
 const store = useGastosStore()
 const router = useRouter()
@@ -95,13 +95,21 @@ const guardarTodo = async () => {
 <template>
   <div class="px-5 pt-6 pb-40 bg-gray-50 min-h-screen">
     <!-- Header -->
-    <header class="mb-6">
-      <h1 class="text-2xl font-extrabold text-gray-900 tracking-tight mb-1">
-        Presupuesto Mensual
-      </h1>
-      <p class="text-sm text-gray-500 font-medium">
-        Define cuánto quieres gastar por categoría cada mes
-      </p>
+    <header class="flex items-center gap-4 mb-6">
+      <button
+        @click="router.back()"
+        class="w-10 h-10 flex items-center justify-center bg-white rounded-full border border-gray-200 shadow-sm text-gray-700 active:scale-95 transition-transform"
+      >
+        <ArrowLeft :size="20" />
+      </button>
+      <div class="flex-1">
+        <h1 class="text-2xl font-extrabold text-gray-900 tracking-tight">
+          Presupuesto Mensual
+        </h1>
+        <p class="text-sm text-gray-500 font-medium">
+          Define cuánto quieres gastar por categoría cada mes
+        </p>
+      </div>
     </header>
 
     <!-- Selector de Mes -->

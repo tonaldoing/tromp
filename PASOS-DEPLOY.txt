@@ -1,0 +1,173 @@
+🚀 PASOS PARA DEPLOYAR TROMPOCOSTOS A FIREBASE HOSTING
+================================================================
+
+📋 CHECKLIST ANTES DE EMPEZAR:
+
+1. ✅ Ya tienes Firebase CLI instalado
+2. ✅ Ya tienes firebase.json configurado
+3. ✅ Ya tienes .firebaserc configurado
+4. ⏳ Necesitas descargar los íconos (si aún no lo hiciste)
+5. ⏳ Necesitas hacer login en Firebase
+
+
+🎨 PASO 1: DESCARGAR ICONOS (Si aún no lo hiciste)
+================================================================
+
+El archivo generate-icon.html ya se abrió en tu navegador.
+
+1. Haz click en "⬇️ Descargar icon-192.png"
+2. Guárdalo en: c:\www\trompocostos\public\icon-192.png
+
+3. Haz click en "⬇️ Descargar icon-512.png"
+4. Guárdalo en: c:\www\trompocostos\public\icon-512.png
+
+✅ Reemplaza los archivos existentes si te pregunta
+
+
+🔐 PASO 2: LOGIN EN FIREBASE
+================================================================
+
+Abre PowerShell o CMD y ejecuta:
+
+    firebase login
+
+→ Se abrirá tu navegador
+→ Inicia sesión con tu cuenta de Google (la misma que usas en Firebase Console)
+→ Autoriza Firebase CLI
+→ Verás "Success! Logged in as tu-email@gmail.com"
+
+
+🔍 PASO 3: VERIFICAR PROYECTO
+================================================================
+
+    firebase projects:list
+
+Deberías ver "trompocostos-app" en la lista.
+
+Si NO aparece, ejecuta:
+
+    firebase use trompocostos-app
+
+
+📦 PASO 4: BUILD DE PRODUCCIÓN
+================================================================
+
+    npm run build
+
+Esto creará la carpeta "dist" con tu app optimizada.
+
+Verás:
+- ✓ built in X.XXs
+- PWA v1.2.0
+- files generated
+
+
+🚀 PASO 5: DEPLOY A FIREBASE HOSTING
+================================================================
+
+OPCIÓN A - Deploy completo (Recomendado):
+
+    npm run deploy
+
+OPCIÓN B - Deploy manual:
+
+    firebase deploy --only hosting
+
+
+⏱️ Espera 30-60 segundos...
+
+Verás algo como:
+
+    ✔  Deploy complete!
+
+    Project Console: https://console.firebase.google.com/project/trompocostos-app/overview
+    Hosting URL: https://trompocostos-app.web.app
+
+
+🎯 PASO 6: CONFIGURAR DOMINIO EN FIREBASE AUTH
+================================================================
+
+MUY IMPORTANTE para que el login funcione:
+
+1. Ve a: https://console.firebase.google.com/project/trompocostos-app/authentication/settings
+
+2. Scroll hasta "Authorized domains"
+
+3. Haz click en "Add domain"
+
+4. Agrega: trompocostos-app.web.app
+
+5. Haz click en "Add"
+
+
+✅ ¡LISTO! Tu app ya está online en:
+https://trompocostos-app.web.app
+
+
+📱 PASO 7: INSTALAR EN CELULAR
+================================================================
+
+1. Abre en tu celular: https://trompocostos-app.web.app
+
+2. En Chrome Android:
+   - Verás un banner "Agregar a pantalla de inicio"
+   - O menú → "Instalar app"
+
+3. En Safari iOS:
+   - Botón Compartir
+   - "Agregar a pantalla de inicio"
+
+¡Ahora tendrás la app instalada con tu ícono 💸!
+
+
+🔄 PARA FUTURAS ACTUALIZACIONES
+================================================================
+
+Cada vez que hagas cambios:
+
+1. Edita el código
+2. git add . && git commit -m "descripción"
+3. git push origin main
+4. npm run deploy
+
+¡Y automáticamente se actualizará en la web!
+
+
+📊 MONITOREO
+================================================================
+
+Ver estadísticas de uso:
+→ https://console.firebase.google.com/project/trompocostos-app/hosting
+
+Ver analytics:
+→ https://console.firebase.google.com/project/trompocostos-app/analytics
+
+
+🆘 SI ALGO SALE MAL
+================================================================
+
+Error "unauthorized domain":
+→ Agrega el dominio en Firebase Auth Authorized Domains
+
+Error "project not found":
+→ firebase use trompocostos-app
+
+Error en build:
+→ npm run type-check (ver errores)
+→ rm -rf node_modules && npm install
+
+App no se actualiza en celular:
+→ Cierra completamente la app
+→ Vuelve a abrirla
+→ Ctrl + Shift + R en navegador
+
+
+🎉 ¡ÉXITO!
+================================================================
+
+Tu app ahora está disponible 24/7 para cualquiera con el link:
+https://trompocostos-app.web.app
+
+Se actualiza automáticamente cuando haces deploy.
+Funciona offline gracias al Service Worker.
+Instalable como app nativa en iOS y Android.

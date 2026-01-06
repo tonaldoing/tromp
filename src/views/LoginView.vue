@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import { useAuthStore } from '../stores/auth'
 import { useRouter } from 'vue-router'
-import { watchEffect } from 'vue'
+import { watchEffect, ref } from 'vue'
+import { Loader2 } from 'lucide-vue-next'
 
 const authStore = useAuthStore()
 const router = useRouter()
+
+const cargandoLogin = ref(false)
+const errorLogin = ref('')
 
 // Si Firebase nos dice que ya hay usuario, nos vamos al Home automáticamente
 watchEffect(() => {
@@ -12,6 +16,31 @@ watchEffect(() => {
     router.push('/')
   }
 })
+
+const handleLogin = async () => {
+  cargandoLogin.value = true
+  errorLogin.value = ''
+
+  try {
+    await authStore.login()
+    // Si el login fue exitoso, watchEffect redirigirá automáticamente
+  } catch (error: any) {
+    console.error('Error en login:', error)
+
+    // Mostrar mensaje de error amigable
+    if (error.code === 'auth/popup-closed-by-user') {
+      errorLogin.value = 'Cerraste la ventana de login. Intenta nuevamente.'
+    } else if (error.code === 'auth/network-request-failed') {
+      errorLogin.value = 'Error de conexión. Verifica tu internet.'
+    } else if (error.code === 'auth/unauthorized-domain') {
+      errorLogin.value = 'Dominio no autorizado. Contacta al administrador.'
+    } else {
+      errorLogin.value = 'Error al iniciar sesión. Intenta nuevamente.'
+    }
+  } finally {
+    cargandoLogin.value = false
+  }
+}
 </script>
 
 <template>
@@ -22,12 +51,37 @@ watchEffect(() => {
     <p class="text-gray-400 mb-12 text-lg">Tu economía, bajo control.</p>
 
     <button
-      @click="authStore.login"
-      class="bg-white text-gray-900 px-8 py-4 rounded-2xl font-bold text-lg flex items-center gap-4 shadow-2xl hover:bg-gray-100 active:scale-95 transition-all"
+      @click="handleLogin"
+      :disabled="cargandoLogin"
+      class="bg-white text-gray-900 px-8 py-4 rounded-2xl font-bold text-lg flex items-center gap-4 shadow-2xl hover:bg-gray-100 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white"
     >
-      <img src="https://www.svgrepo.com/show/475656/google-color.svg" class="w-6 h-6" />
-      <span>Entrar con Google</span>
+      <Loader2
+        v-if="cargandoLogin"
+        class="w-6 h-6 animate-spin"
+      />
+      <img
+        v-else
+        src="https://www.svgrepo.com/show/475656/google-color.svg"
+        class="w-6 h-6"
+      />
+      <span>{{ cargandoLogin ? 'Iniciando sesión...' : 'Entrar con Google' }}</span>
     </button>
+
+    <!-- Mensaje de error -->
+    <div
+      v-if="errorLogin"
+      class="mt-6 bg-red-500/10 border border-red-500/50 text-red-400 px-4 py-3 rounded-xl text-sm max-w-md"
+    >
+      {{ errorLogin }}
+    </div>
+
+    <!-- Info sobre popup -->
+    <div
+      v-if="!errorLogin && !cargandoLogin"
+      class="mt-6 bg-blue-500/10 border border-blue-500/50 text-blue-300 px-4 py-3 rounded-xl text-xs max-w-md"
+    >
+      💡 <strong>Tip:</strong> Si se bloquea el popup, serás redirigido automáticamente a Google.
+    </div>
 
     <p class="mt-8 text-xs text-gray-600">
       Solo usuarios autorizados. <br />

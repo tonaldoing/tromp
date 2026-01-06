@@ -1,7 +1,14 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { auth, db, googleProvider } from '../firebase'
-import { signInWithPopup, signOut, onAuthStateChanged, type User } from 'firebase/auth'
+import {
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
+  signOut,
+  onAuthStateChanged,
+  type User,
+} from 'firebase/auth'
 import { doc, getDoc, setDoc, onSnapshot, Timestamp } from 'firebase/firestore'
 import { useRouter } from 'vue-router'
 import { useGastosStore } from './gastos'
@@ -58,6 +65,8 @@ export const useAuthStore = defineStore('auth', () => {
     // Crear el Board
     await setDoc(doc(db, 'boards', nuevoBoardId), {
       nombre: 'Mis Gastos',
+      icono: 'users',
+      esDefault: true,
       owner: firebaseUser.uid,
       members: [firebaseUser.uid],
       createdAt: Timestamp.now(),
@@ -133,15 +142,48 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // Login con Google
+  // Login con Google - Intenta popup, usa redirect si falla
   const login = async () => {
     try {
+      console.log('Intentando login con popup...')
       const result = await signInWithPopup(auth, googleProvider)
+      console.log('Login con popup exitoso')
       return result.user
-    } catch (error) {
-      console.error('Error login:', error)
+    } catch (error: any) {
+      console.error('Error en popup:', error)
+
+      // Detectar si el error es por popup bloqueado
+      const isPopupBlocked =
+        error.code === 'auth/popup-blocked' ||
+        error.code === 'auth/cancelled-popup-request' ||
+        error.message?.includes('popup')
+
+      if (isPopupBlocked) {
+        console.log('Popup bloqueado, usando redirect...')
+        // Fallback: usar redirect
+        await signInWithRedirect(auth, googleProvider)
+        // signInWithRedirect no retorna nada, la redirección maneja el resto
+        return null
+      }
+
+      // Si es otro tipo de error, lanzarlo
       throw error
     }
+  }
+
+  // Manejar resultado de redirect (se llama en inicializarAuth)
+  const manejarRedirectResult = async () => {
+    try {
+      const result = await getRedirectResult(auth)
+      if (result) {
+        console.log('Login por redirect exitoso:', result.user)
+        return result.user
+      }
+    } catch (error) {
+      console.error('Error manejando redirect:', error)
+      throw error
+    }
+    return null
   }
 
   // Logout
@@ -162,7 +204,15 @@ export const useAuthStore = defineStore('auth', () => {
 
   // Inicializador (Se llama en App.vue)
   const inicializarAuth = (): Promise<User | null> => {
-    return new Promise((resolve) => {
+    return new Promise(async (resolve) => {
+      // Primero, manejar cualquier redirect pendiente
+      try {
+        await manejarRedirectResult()
+      } catch (error) {
+        console.error('Error procesando redirect:', error)
+      }
+
+      // Luego, escuchar cambios de auth
       onAuthStateChanged(auth, async (currentUser) => {
         user.value = currentUser
 
@@ -201,5 +251,6 @@ export const useAuthStore = defineStore('auth', () => {
     inicializarAuth,
     actualizarPerfil,
     cargarPerfilUsuario,
+    manejarRedirectResult,
   }
 })

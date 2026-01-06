@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch as vueWatch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useGastosStore } from '../stores/gastos'
+import { getIcono } from '../utils/icons'
 import { ChevronDown, Users, Crown, Check } from 'lucide-vue-next'
 
 const authStore = useAuthStore()
@@ -12,12 +13,35 @@ const router = useRouter()
 const mostrarMenu = ref(false)
 
 const tableroActual = computed(() => {
-  if (!gastosStore.boardActivo) return null
+  // Si no hay board activo, mostrar "Sin tablero"
+  if (!gastosStore.boardActivo) {
+    return {
+      id: null,
+      nombre: 'Sin tablero',
+      icono: 'users',
+      owner: null,
+      members: 0,
+    }
+  }
+
+  // Si hay board activo pero aún no cargó la info, mostrar loading
+  if (!gastosStore.infoBoard) {
+    return {
+      id: gastosStore.boardActivo,
+      nombre: 'Cargando...',
+      icono: 'users',
+      owner: null,
+      members: 0,
+    }
+  }
+
+  // Board válido con info completa
   return {
     id: gastosStore.boardActivo,
-    nombre: gastosStore.infoBoard?.nombre || 'Mi Tablero',
-    owner: gastosStore.infoBoard?.owner,
-    members: gastosStore.infoBoard?.members?.length || 1,
+    nombre: gastosStore.infoBoard.nombre || 'Sin nombre',
+    icono: gastosStore.infoBoard.icono || 'users',
+    owner: gastosStore.infoBoard.owner,
+    members: gastosStore.infoBoard.members?.length || 0,
   }
 })
 
@@ -25,16 +49,34 @@ const esOwner = computed(() => {
   return gastosStore.infoBoard?.owner === authStore.user?.uid
 })
 
+// Estado para datos de otros tableros
+const otrosBoardsData = ref<Record<string, any>>({})
+
 const otrosTableros = computed(() => {
   return (authStore.userProfile?.boards || []).filter((id) => id !== gastosStore.boardActivo)
 })
+
+// Cargar datos de un board
+const cargarDatosBoard = async (boardId: string) => {
+  try {
+    const { doc, getDoc } = await import('firebase/firestore')
+    const { db } = await import('../firebase')
+    const boardRef = doc(db, 'boards', boardId)
+    const boardSnap = await getDoc(boardRef)
+    if (boardSnap.exists()) {
+      otrosBoardsData.value[boardId] = { id: boardId, ...boardSnap.data() }
+    }
+  } catch (error) {
+    console.error('Error cargando board:', error)
+  }
+}
 
 const toggleMenu = () => {
   mostrarMenu.value = !mostrarMenu.value
 }
 
-const seleccionar = (boardId: string) => {
-  gastosStore.seleccionarBoard(boardId)
+const seleccionar = async (boardId: string) => {
+  await gastosStore.seleccionarBoard(boardId)
   mostrarMenu.value = false
 }
 
@@ -66,6 +108,28 @@ const handleClickOutside = (show: boolean) => {
 const watch = () => {
   handleClickOutside(mostrarMenu.value)
 }
+
+// Cargar datos cuando cambian los boards del usuario
+vueWatch(
+  () => authStore.userProfile?.boards,
+  (boards) => {
+    if (boards) {
+      boards.forEach(boardId => {
+        cargarDatosBoard(boardId)
+      })
+    }
+  },
+  { immediate: true }
+)
+
+// Cargar datos al montar
+onMounted(() => {
+  if (authStore.userProfile?.boards) {
+    authStore.userProfile.boards.forEach(boardId => {
+      cargarDatosBoard(boardId)
+    })
+  }
+})
 </script>
 
 <template>
@@ -76,14 +140,14 @@ const watch = () => {
       :class="mostrarMenu ? 'border-black' : ''"
     >
       <div class="w-8 h-8 rounded-lg bg-linear-to-br from-gray-800 to-black text-white flex items-center justify-center shrink-0">
-        <Users :size="16" />
+        <component :is="getIcono(tableroActual.icono)" :size="16" />
       </div>
       <div class="flex-1 text-left min-w-0 hidden sm:block">
         <p class="text-xs font-bold text-gray-800 truncate leading-tight">
-          {{ tableroActual?.nombre || 'Sin tablero' }}
+          {{ tableroActual.nombre }}
         </p>
         <p class="text-xs text-gray-400 leading-tight">
-          {{ tableroActual?.members || 0 }} miembro{{ tableroActual?.members !== 1 ? 's' : '' }}
+          {{ tableroActual.members }} miembro{{ tableroActual.members !== 1 ? 's' : '' }}
         </p>
       </div>
       <ChevronDown
@@ -114,17 +178,17 @@ const watch = () => {
           </p>
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-lg bg-linear-to-br from-gray-800 to-black text-white flex items-center justify-center shrink-0">
-              <Users :size="18" />
+              <component :is="getIcono(tableroActual.icono)" :size="18" />
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2">
                 <p class="font-bold text-gray-800 truncate text-sm">
-                  {{ tableroActual?.nombre }}
+                  {{ tableroActual.nombre }}
                 </p>
                 <Crown v-if="esOwner" :size="12" class="text-yellow-500 shrink-0" />
               </div>
               <p class="text-xs text-gray-500">
-                {{ tableroActual?.members }} persona{{ tableroActual?.members !== 1 ? 's' : '' }}
+                {{ tableroActual.members }} persona{{ tableroActual.members !== 1 ? 's' : '' }}
               </p>
             </div>
             <Check :size="18" class="text-green-600 shrink-0" />
@@ -143,10 +207,10 @@ const watch = () => {
             class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 transition-colors text-left"
           >
             <div class="w-10 h-10 rounded-lg bg-linear-to-br from-gray-100 to-gray-200 text-gray-500 flex items-center justify-center shrink-0">
-              <Users :size="18" />
+              <component :is="getIcono(otrosBoardsData[boardId]?.icono || 'users')" :size="18" />
             </div>
             <div class="flex-1 min-w-0">
-              <p class="font-bold text-gray-700 truncate text-sm">Tablero {{ boardId.slice(-4) }}</p>
+              <p class="font-bold text-gray-700 truncate text-sm">{{ otrosBoardsData[boardId]?.nombre || 'Cargando...' }}</p>
               <p class="text-xs text-gray-400">Click para activar</p>
             </div>
           </button>

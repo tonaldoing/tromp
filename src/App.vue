@@ -1,26 +1,23 @@
 <script setup lang="ts">
 import { onMounted, watch } from 'vue'
-import { RouterView, useRoute, useRouter, RouterLink } from 'vue-router'
+import { RouterView, useRoute, RouterLink } from 'vue-router'
 import { useGastosStore } from './stores/gastos'
 import { useAuthStore } from './stores/auth'
-import { Home, PieChart, Plus, User, Wallet } from 'lucide-vue-next'
+import { Home, PieChart, Plus, Wallet, Users } from 'lucide-vue-next'
 
 const gastosStore = useGastosStore()
 const authStore = useAuthStore()
 const route = useRoute()
-const router = useRouter()
 
 onMounted(async () => {
   await authStore.inicializarAuth()
 })
 
 watch(
-  () => authStore.user,
-  (usuario) => {
-    if (usuario) {
-      gastosStore.inicializar()
-    } else {
-      router.push('/login')
+  () => authStore.userProfile,
+  async (perfil) => {
+    if (perfil) {
+      await gastosStore.inicializar()
     }
   },
   { immediate: true },
@@ -119,14 +116,9 @@ watch(
             <div
               class="transform transition-transform duration-200 group-[.router-link-active]:scale-110"
             >
-              <img
-                v-if="authStore.userProfile?.photoURL"
-                :src="authStore.userProfile.photoURL"
-                class="w-6 h-6 rounded-full border border-gray-200 object-cover group-[.router-link-active]:border-black"
-              />
-              <User v-else :size="24" stroke-width="2.5" />
+              <Users :size="24" stroke-width="2.5" />
             </div>
-            <span class="text-[10px] font-bold tracking-wide">Perfil</span>
+            <span class="text-[10px] font-bold tracking-wide">Tableros</span>
           </RouterLink>
         </div>
       </nav>

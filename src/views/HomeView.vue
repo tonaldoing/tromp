@@ -29,6 +29,9 @@ const {
   totalGastosDelMes,
   totalIngresosDelMes,
   balanceDelMes,
+  estadoPresupuesto,
+  presupuestoConfigurado,
+  categoriasGasto,
 } = storeToRefs(store)
 
 const formatearFecha = (fecha: Date) => {
@@ -72,7 +75,7 @@ const irAPerfil = () => {
         <h1 class="text-2xl font-extrabold text-gray-900 tracking-tight">
           Hola, {{ authStore.userProfile?.displayName?.split(' ')[0] || 'Usuario' }}
         </h1>
-        <div class="mt-2">
+        <div v-if="store.boardActivo" class="mt-2">
           <BoardSelector />
         </div>
       </div>
@@ -113,7 +116,10 @@ const irAPerfil = () => {
 
       <div class="grid grid-cols-2 gap-4">
         <!-- Ingresos -->
-        <div class="bg-green-50/50 rounded-2xl p-3 flex flex-col border border-green-100/50">
+        <RouterLink
+          to="/ingresos"
+          class="bg-green-50/50 rounded-2xl p-3 flex flex-col border border-green-100/50 hover:bg-green-100/50 hover:border-green-200 active:scale-95 transition-all cursor-pointer"
+        >
           <div class="flex items-center gap-2 mb-1">
             <div
               class="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center text-green-600"
@@ -125,10 +131,13 @@ const irAPerfil = () => {
           <span class="text-lg font-bold text-gray-800"
             >${{ formatearDinero(totalIngresosDelMes) }}</span
           >
-        </div>
+        </RouterLink>
 
         <!-- Gastos -->
-        <div class="bg-red-50/50 rounded-2xl p-3 flex flex-col border border-red-100/50">
+        <RouterLink
+          to="/gastos"
+          class="bg-red-50/50 rounded-2xl p-3 flex flex-col border border-red-100/50 hover:bg-red-100/50 hover:border-red-200 active:scale-95 transition-all cursor-pointer"
+        >
           <div class="flex items-center gap-2 mb-1">
             <div
               class="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center text-red-600"
@@ -140,7 +149,7 @@ const irAPerfil = () => {
           <span class="text-lg font-bold text-gray-800"
             >${{ formatearDinero(totalGastosDelMes) }}</span
           >
-        </div>
+        </RouterLink>
       </div>
     </div>
 
@@ -181,6 +190,72 @@ const irAPerfil = () => {
         </div>
         <span class="text-xs font-bold text-gray-700">Pagos</span>
       </RouterLink>
+    </div>
+
+    <!-- Progreso de Presupuesto por Categoría -->
+    <div v-if="presupuestoConfigurado" class="mb-8">
+      <div class="flex justify-between items-end mb-4">
+        <h3 class="text-lg font-bold text-gray-800">Progreso del Mes</h3>
+        <RouterLink
+          to="/budget"
+          class="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
+        >
+          Editar topes
+        </RouterLink>
+      </div>
+
+      <div class="space-y-3">
+        <div
+          v-for="cat in categoriasGasto.filter(c => (estadoPresupuesto[c.nombre]?.total || 0) > 0)"
+          :key="cat.id"
+          class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm"
+        >
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-2">
+              <component :is="getIcono(cat.icono)" :size="16" class="text-gray-600" stroke-width="2.5" />
+              <span class="text-sm font-bold text-gray-800">{{ cat.nombre }}</span>
+            </div>
+            <div class="text-right">
+              <p class="text-xs font-bold text-gray-900">
+                ${{ formatearDinero(estadoPresupuesto[cat.nombre]?.gastado || 0) }} / ${{ formatearDinero(estadoPresupuesto[cat.nombre]?.total || 0) }}
+              </p>
+            </div>
+          </div>
+
+          <!-- Barra de progreso -->
+          <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+            <div
+              class="h-full rounded-full transition-all duration-500"
+              :class="
+                (estadoPresupuesto[cat.nombre]?.porcentaje || 0) >= 100
+                  ? 'bg-red-500'
+                  : (estadoPresupuesto[cat.nombre]?.porcentaje || 0) >= 80
+                    ? 'bg-amber-500'
+                    : 'bg-green-500'
+              "
+              :style="{ width: Math.min((estadoPresupuesto[cat.nombre]?.porcentaje || 0), 100) + '%' }"
+            ></div>
+          </div>
+
+          <!-- Saldo disponible -->
+          <div class="flex items-center justify-between mt-2">
+            <p class="text-xs text-gray-500">
+              {{ (estadoPresupuesto[cat.nombre]?.porcentaje || 0).toFixed(0) }}% usado
+            </p>
+            <p
+              class="text-xs font-bold"
+              :class="
+                (estadoPresupuesto[cat.nombre]?.restante || 0) < 0
+                  ? 'text-red-600'
+                  : 'text-green-600'
+              "
+            >
+              {{ (estadoPresupuesto[cat.nombre]?.restante || 0) < 0 ? 'Excedido' : 'Disponible' }}:
+              ${{ formatearDinero(Math.abs(estadoPresupuesto[cat.nombre]?.restante || 0)) }}
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Título movimientos -->

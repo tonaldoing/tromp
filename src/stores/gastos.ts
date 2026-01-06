@@ -49,6 +49,16 @@ export interface Gasto {
   totalCuotas?: number
 }
 
+export interface Board {
+  id: string
+  nombre: string
+  icono: string
+  esDefault: boolean
+  owner: string
+  members: string[]
+  createdAt: Timestamp
+}
+
 export const useGastosStore = defineStore('gastos', () => {
   // --- ESTADO ---
   const gastos = ref<Gasto[]>([])
@@ -58,7 +68,7 @@ export const useGastosStore = defineStore('gastos', () => {
   const metodosPago = ref<string[]>([])
 
   const boardActivo = ref<string | null>(null)
-  const infoBoard = ref<any>(null)
+  const infoBoard = ref<Board | null>(null)
 
   const fechaVisual = ref(new Date())
   const cargando = ref(false)
@@ -79,11 +89,42 @@ export const useGastosStore = defineStore('gastos', () => {
   // --- INICIALIZAR ---
   const inicializar = async () => {
     const authStore = useAuthStore()
-    if (!authStore.userProfile || authStore.userProfile.boards.length === 0) return
 
-    const primerBoard = authStore.userProfile.boards[0]
-    if (!boardActivo.value && primerBoard) {
-      seleccionarBoard(primerBoard)
+    // Si no tiene perfil o NO tiene tableros, limpiar todo y salir
+    if (!authStore.userProfile || !authStore.userProfile.boards || authStore.userProfile.boards.length === 0) {
+      limpiarDatos()
+      return
+    }
+
+    // Si ya hay un board activo, verificar que aún existe en la lista de boards del usuario
+    if (boardActivo.value) {
+      const existeEnLista = authStore.userProfile.boards.includes(boardActivo.value)
+      if (existeEnLista) {
+        // El board actual es válido, no hacer nada
+        return
+      } else {
+        // El board actual ya no está en la lista del usuario, limpiar
+        limpiarDatos()
+      }
+    }
+
+    // Buscar board predeterminado
+    let boardASeleccionar = authStore.userProfile.boards[0]
+
+    for (const boardId of authStore.userProfile.boards) {
+      try {
+        const boardSnap = await getDoc(doc(db, 'boards', boardId))
+        if (boardSnap.exists() && boardSnap.data().esDefault === true) {
+          boardASeleccionar = boardId
+          break
+        }
+      } catch (error) {
+        console.warn('Error loading board:', boardId, error)
+      }
+    }
+
+    if (boardASeleccionar) {
+      await seleccionarBoard(boardASeleccionar)
     }
   }
 
@@ -117,7 +158,34 @@ export const useGastosStore = defineStore('gastos', () => {
   }
 
   // --- SELECCIONAR TABLERO ---
-  const seleccionarBoard = (boardId: string) => {
+  const seleccionarBoard = async (boardId: string) => {
+    // MIGRACIÓN: Agregar campos faltantes a boards existentes
+    const boardRef = doc(db, 'boards', boardId)
+    const boardSnap = await getDoc(boardRef)
+
+    if (boardSnap.exists()) {
+      const data = boardSnap.data()
+      const updates: any = {}
+      let needsUpdate = false
+
+      if (data.icono === undefined) {
+        updates.icono = 'users'
+        needsUpdate = true
+      }
+
+      if (data.esDefault === undefined) {
+        const authStore = useAuthStore()
+        const userBoards = authStore.userProfile?.boards || []
+        // Primer board del usuario es default por defecto
+        updates.esDefault = userBoards.length === 1 || userBoards[0] === boardId
+        needsUpdate = true
+      }
+
+      if (needsUpdate) {
+        await updateDoc(boardRef, updates)
+      }
+    }
+
     unsubscribes.forEach((u) => u())
     unsubscribes = []
     presupuestosUnsub = null
@@ -125,14 +193,15 @@ export const useGastosStore = defineStore('gastos', () => {
     boardActivo.value = boardId
     cargando.value = true
 
-    const boardRef = doc(db, 'boards', boardId)
     const gastosRef = collection(db, `boards/${boardId}/gastos`)
     const configRef = doc(db, `boards/${boardId}/config/general`)
 
     // A. Info del Board
     unsubscribes.push(
       onSnapshot(boardRef, (doc) => {
-        infoBoard.value = doc.data()
+        if (doc.exists()) {
+          infoBoard.value = { id: doc.id, ...doc.data() } as Board
+        }
       }),
     )
 
@@ -460,10 +529,10 @@ export const useGastosStore = defineStore('gastos', () => {
     await updateDoc(doc(db, 'users', uid), { boards: arrayUnion(boardId) })
 
     await authStore.cargarPerfilUsuario()
-    seleccionarBoard(boardId)
+    await seleccionarBoard(boardId)
   }
 
-  const crearNuevoBoard = async (nombre: string) => {
+  const crearNuevoBoard = async (nombre: string, icono: string = 'users') => {
     const authStore = useAuthStore()
     const uid = authStore.user?.uid
     if (!uid) throw new Error('Usuario no autenticado')
@@ -473,9 +542,13 @@ export const useGastosStore = defineStore('gastos', () => {
     }
 
     const newId = `board_${Date.now()}`
+    const cantidadActual = authStore.userProfile?.boards.length || 0
+    const esDefault = cantidadActual === 0 // Primer tablero siempre es default
 
     await setDoc(doc(db, 'boards', newId), {
       nombre,
+      icono,
+      esDefault,
       owner: uid,
       members: [uid],
       createdAt: Timestamp.now(),
@@ -483,9 +556,67 @@ export const useGastosStore = defineStore('gastos', () => {
 
     await updateDoc(doc(db, 'users', uid), { boards: arrayUnion(newId) })
     await authStore.cargarPerfilUsuario()
-    seleccionarBoard(newId)
+    await seleccionarBoard(newId)
 
     return newId
+  }
+
+  const editarBoard = async (boardId: string, nombre: string, icono: string) => {
+    const authStore = useAuthStore()
+    const uid = authStore.user?.uid
+    if (!uid) throw new Error('Usuario no autenticado')
+
+    // Verificar que el usuario sea owner del board
+    const boardRef = doc(db, 'boards', boardId)
+    const boardSnap = await getDoc(boardRef)
+
+    if (!boardSnap.exists()) {
+      throw new Error('El tablero no existe')
+    }
+
+    if (boardSnap.data().owner !== uid) {
+      throw new Error('Solo el creador puede editar el tablero')
+    }
+
+    await updateDoc(boardRef, {
+      nombre,
+      icono,
+    })
+
+    // Si estamos editando el board activo, actualizar infoBoard
+    if (boardActivo.value === boardId && infoBoard.value) {
+      infoBoard.value = { ...infoBoard.value, nombre, icono }
+    }
+  }
+
+  const setDefaultBoard = async (boardId: string) => {
+    const authStore = useAuthStore()
+    const uid = authStore.user?.uid
+    if (!uid) throw new Error('Usuario no autenticado')
+
+    const userBoards = authStore.userProfile?.boards || []
+
+    if (userBoards.length === 1) {
+      throw new Error('No se puede cambiar el default con un solo tablero')
+    }
+
+    // Operación atómica con batch
+    const batch = writeBatch(db)
+
+    // Desactivar default en todos los boards del usuario
+    for (const bid of userBoards) {
+      batch.update(doc(db, 'boards', bid), { esDefault: false })
+    }
+
+    // Activar default en el board seleccionado
+    batch.update(doc(db, 'boards', boardId), { esDefault: true })
+
+    await batch.commit()
+
+    // Actualizar infoBoard si es el activo
+    if (boardActivo.value === boardId && infoBoard.value) {
+      infoBoard.value.esDefault = true
+    }
   }
 
   const salirDeBoard = async (boardId: string) => {
@@ -499,6 +630,18 @@ export const useGastosStore = defineStore('gastos', () => {
       throw new Error('No puedes salir de tu último tablero. Debes tener al menos uno.')
     }
 
+    // Verificar si el board es default y transferir si es necesario
+    const boardRef = doc(db, 'boards', boardId)
+    const boardSnap = await getDoc(boardRef)
+
+    if (boardSnap.exists() && boardSnap.data().esDefault && cantidadTableros === 2) {
+      // Transferir default al otro board antes de salir
+      const otroBoard = authStore.userProfile!.boards.find(id => id !== boardId)
+      if (otroBoard) {
+        await updateDoc(doc(db, 'boards', otroBoard), { esDefault: true })
+      }
+    }
+
     await updateDoc(doc(db, 'boards', boardId), { members: arrayRemove(uid) })
     await updateDoc(doc(db, 'users', uid), { boards: arrayRemove(boardId) })
     await authStore.cargarPerfilUsuario()
@@ -507,7 +650,7 @@ export const useGastosStore = defineStore('gastos', () => {
       const otrosBoards = authStore.userProfile?.boards || []
       const primerBoard = otrosBoards[0]
       if (primerBoard) {
-        seleccionarBoard(primerBoard)
+        await seleccionarBoard(primerBoard)
       } else {
         limpiarDatos()
       }
@@ -554,6 +697,14 @@ export const useGastosStore = defineStore('gastos', () => {
     batch.delete(configPresupuestosRef)
     batch.delete(boardRef)
 
+    // Si el board a eliminar es default y hay 2 boards, poner el otro como default
+    if (boardData.esDefault && authStore.userProfile!.boards.length === 2) {
+      const otroBoard = authStore.userProfile!.boards.find(id => id !== boardId)
+      if (otroBoard) {
+        batch.update(doc(db, 'boards', otroBoard), { esDefault: true })
+      }
+    }
+
     await batch.commit()
 
     for (const memberId of boardData.members || []) {
@@ -570,7 +721,7 @@ export const useGastosStore = defineStore('gastos', () => {
       const otrosBoards = authStore.userProfile?.boards || []
       const primerBoard = otrosBoards[0]
       if (primerBoard) {
-        seleccionarBoard(primerBoard)
+        await seleccionarBoard(primerBoard)
       } else {
         limpiarDatos()
       }
@@ -784,6 +935,8 @@ export const useGastosStore = defineStore('gastos', () => {
     // Tableros
     unirseABoard,
     crearNuevoBoard,
+    editarBoard,
+    setDefaultBoard,
     salirDeBoard,
     eliminarBoard,
 

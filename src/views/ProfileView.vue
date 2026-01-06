@@ -5,6 +5,7 @@ import { useAuthStore } from '../stores/auth'
 import { useGastosStore } from '../stores/gastos'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '../firebase'
+import { getIcono } from '../utils/icons'
 import {
   ChevronLeft,
   Edit3,
@@ -15,6 +16,18 @@ import {
   Users,
   Crown,
   Loader2,
+  X,
+  Check,
+  Home,
+  Briefcase,
+  Heart,
+  Star,
+  Zap,
+  Gift,
+  ShoppingCart,
+  Car,
+  Coffee,
+  Wallet,
 } from 'lucide-vue-next'
 
 const authStore = useAuthStore()
@@ -43,12 +56,29 @@ const nombreNuevoBoard = ref('')
 const error = ref('')
 const cargandoAccion = ref<string | null>(null) // Para mostrar loading en acciones
 
+// Estado de edición de boards
+const boardEditando = ref<string | null>(null)
+const nombreBoardTemp = ref('')
+const iconoBoardTemp = ref('users')
+const errorBoard = ref('')
+const boardsData = ref<Record<string, any>>({})
+
+// Iconos para selección de board (curados)
+const listaIconosBoard = [
+  'users', 'home', 'briefcase', 'heart', 'star', 'crown',
+  'zap', 'gift', 'shopping-cart', 'car', 'coffee', 'wallet'
+]
+
 // Computed
 const esOwnerDelBoard = (boardId: string) => {
   return gastosStore.infoBoard?.owner === authStore.user?.uid && gastosStore.boardActivo === boardId
 }
 
 const cantidadBoards = computed(() => authStore.userProfile?.boards.length || 0)
+
+const esDefault = (boardId: string) => {
+  return boardsData.value[boardId]?.esDefault || false
+}
 
 // Acciones de perfil
 const guardarPerfil = async () => {
@@ -151,6 +181,75 @@ const eliminarBoard = async (boardId: string) => {
   }
 }
 
+const iniciarEdicionBoard = (boardId: string) => {
+  const board = boardsData.value[boardId]
+  boardEditando.value = boardId
+  nombreBoardTemp.value = board?.nombre || 'Mi Tablero'
+  iconoBoardTemp.value = board?.icono || 'users'
+  errorBoard.value = ''
+}
+
+const cancelarEdicionBoard = () => {
+  boardEditando.value = null
+  nombreBoardTemp.value = ''
+  iconoBoardTemp.value = 'users'
+  errorBoard.value = ''
+}
+
+const guardarBoard = async (boardId: string) => {
+  if (!nombreBoardTemp.value.trim()) {
+    errorBoard.value = 'El nombre es requerido'
+    return
+  }
+
+  try {
+    errorBoard.value = ''
+    cargandoAccion.value = `editar-${boardId}`
+    await gastosStore.editarBoard(boardId, nombreBoardTemp.value.trim(), iconoBoardTemp.value)
+
+    // Actualizar datos locales
+    if (boardsData.value[boardId]) {
+      boardsData.value[boardId].nombre = nombreBoardTemp.value.trim()
+      boardsData.value[boardId].icono = iconoBoardTemp.value
+    }
+
+    boardEditando.value = null
+  } catch (e: any) {
+    errorBoard.value = e.message || 'Error al editar tablero'
+  } finally {
+    cargandoAccion.value = null
+  }
+}
+
+const toggleDefault = async (boardId: string) => {
+  try {
+    errorBoard.value = ''
+    cargandoAccion.value = `default-${boardId}`
+    await gastosStore.setDefaultBoard(boardId)
+
+    // Actualizar datos locales
+    Object.keys(boardsData.value).forEach(id => {
+      boardsData.value[id].esDefault = id === boardId
+    })
+  } catch (e: any) {
+    errorBoard.value = e.message || 'Error al cambiar tablero predeterminado'
+  } finally {
+    cargandoAccion.value = null
+  }
+}
+
+const cargarDatosBoard = async (boardId: string) => {
+  try {
+    const boardRef = doc(db, 'boards', boardId)
+    const boardSnap = await getDoc(boardRef)
+    if (boardSnap.exists()) {
+      boardsData.value[boardId] = { id: boardId, ...boardSnap.data() }
+    }
+  } catch (error) {
+    console.error('Error cargando board:', error)
+  }
+}
+
 const cerrarSesion = async () => {
   if (confirm('¿Cerrar sesión?')) {
     await authStore.logout()
@@ -203,6 +302,7 @@ onMounted(() => {
   if (authStore.userProfile?.boards) {
     authStore.userProfile.boards.forEach(boardId => {
       cargarMiembrosBoard(boardId)
+      cargarDatosBoard(boardId)
     })
   }
 })
@@ -355,142 +455,242 @@ watch(
       </div>
 
       <!-- Lista de Tableros -->
-      <div v-else class="space-y-3 mb-6">
+      <div v-else class="space-y-4 mb-6">
         <div
           v-for="boardId in authStore.userProfile?.boards"
           :key="boardId"
-          class="bg-white rounded-2xl border-2 overflow-hidden transition-all hover:shadow-md"
+          class="bg-white rounded-3xl border-2 overflow-hidden transition-all"
           :class="
             gastosStore.boardActivo === boardId
-              ? 'border-black shadow-lg ring-2 ring-black ring-opacity-5'
-              : 'border-gray-200 hover:border-gray-300'
+              ? 'border-black ring-4 ring-black/5 shadow-lg'
+              : 'border-gray-200 shadow-sm'
           "
         >
-          <!-- Header del Board -->
-          <div
-            @click="gastosStore.seleccionarBoard(boardId)"
-            class="p-4 cursor-pointer active:scale-[0.98] transition-transform"
-          >
-            <div class="flex items-start justify-between mb-3">
-              <div class="flex items-center gap-3 flex-1">
-                <div
-                  class="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-sm"
-                  :class="
-                    gastosStore.boardActivo === boardId
-                      ? 'bg-linear-to-br from-gray-800 to-black text-white'
-                      : 'bg-linear-to-br from-gray-100 to-gray-200 text-gray-500'
-                  "
+          <!-- MODO EDICIÓN -->
+          <div v-if="boardEditando === boardId" class="p-5">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-black text-gray-900">Editar Tablero</h3>
+              <button
+                @click="cancelarEdicionBoard"
+                class="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200 transition-colors"
+              >
+                <X :size="16" />
+              </button>
+            </div>
+
+            <!-- Nombre -->
+            <div class="mb-4">
+              <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">
+                Nombre del tablero
+              </label>
+              <input
+                v-model="nombreBoardTemp"
+                placeholder="Ej: Gastos Familiares, Casa..."
+                class="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl font-bold text-gray-800 placeholder-gray-300 outline-none focus:border-black transition-colors"
+                @keyup.enter="guardarBoard(boardId)"
+              />
+            </div>
+
+            <!-- Selector de Icono -->
+            <div class="mb-4">
+              <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">
+                Icono
+              </label>
+              <div class="grid grid-cols-6 gap-2 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                <button
+                  v-for="icono in listaIconosBoard"
+                  :key="icono"
+                  @click="iconoBoardTemp = icono"
+                  type="button"
+                  class="aspect-square flex items-center justify-center rounded-lg transition-all active:scale-95"
+                  :class="iconoBoardTemp === icono
+                    ? 'bg-black text-white shadow-md scale-105'
+                    : 'bg-white text-gray-400 border border-gray-200 hover:border-gray-400 hover:text-gray-600'"
                 >
-                  <Users :size="20" />
-                </div>
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-2 mb-1">
-                    <p class="font-bold text-gray-800 truncate">
-                      {{ gastosStore.infoBoard?.nombre || 'Mi Tablero' }}
-                    </p>
-                    <Crown
-                      v-if="esOwnerDelBoard(boardId)"
-                      :size="14"
-                      class="text-yellow-500 shrink-0"
-                      title="Sos el creador"
-                    />
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <span
-                      class="text-xs font-bold px-2 py-0.5 rounded-md"
-                      :class="
-                        gastosStore.boardActivo === boardId
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-gray-100 text-gray-500'
-                      "
-                    >
-                      {{ gastosStore.boardActivo === boardId ? '● Activo' : 'Inactivo' }}
-                    </span>
-                    <span class="text-xs text-gray-400">
-                      {{ esOwnerDelBoard(boardId) ? 'Propietario' : 'Miembro' }}
-                    </span>
-                  </div>
-                </div>
+                  <component :is="getIcono(icono)" :size="20" stroke-width="2.5" />
+                </button>
               </div>
             </div>
 
-            <!-- Información adicional -->
-            <div class="bg-gray-50 rounded-xl p-3 space-y-2">
-              <div class="flex items-center justify-between text-xs">
-                <span class="text-gray-500 font-medium">Código de invitación</span>
-                <button
-                  :id="'copy-' + boardId"
-                  @click.stop="copiarCodigo(boardId)"
-                  class="px-2.5 py-1 rounded-lg font-bold bg-white border border-gray-200 text-gray-700 hover:bg-gray-100 transition-all flex items-center gap-1.5 active:scale-95"
-                >
-                  <Copy :size="12" />
-                  <span class="font-mono">{{ boardId.slice(-8) }}...</span>
-                </button>
-              </div>
-
-              <!-- Miembros con avatares -->
-              <div class="pt-2">
-                <p class="text-xs text-gray-500 font-medium mb-2">
-                  Miembros ({{ membersData[boardId]?.length || 0 }})
-                </p>
-                <div class="flex flex-wrap gap-2">
-                  <div
-                    v-for="member in membersData[boardId]"
-                    :key="member.uid"
-                    class="flex items-center gap-2 bg-white px-2 py-1.5 rounded-lg border border-gray-200"
-                  >
-                    <img
-                      :src="member.photoURL"
-                      :alt="member.displayName"
-                      class="w-6 h-6 rounded-full object-cover"
-                      @error="handleImageError"
-                    />
-                    <span class="text-xs font-bold text-gray-700 truncate max-w-[100px]">
-                      {{ member.displayName }}
-                    </span>
-                  </div>
+            <!-- Toggle Predeterminado (solo si hay 2 tableros) -->
+            <div v-if="cantidadBoards === 2" class="mb-4">
+              <button
+                @click="toggleDefault(boardId)"
+                :disabled="cargandoAccion === `default-${boardId}` || esDefault(boardId)"
+                type="button"
+                class="w-full flex items-center justify-between p-3 rounded-xl border-2 transition-all"
+                :class="esDefault(boardId)
+                  ? 'border-green-500 bg-green-50'
+                  : 'border-gray-200 bg-white hover:border-gray-300'"
+              >
+                <span class="text-sm font-bold text-gray-700">Tablero predeterminado</span>
+                <div class="flex items-center gap-2">
+                  <Loader2 v-if="cargandoAccion === `default-${boardId}`" :size="16" class="animate-spin text-gray-400" />
+                  <Check v-else-if="esDefault(boardId)" :size="16" class="text-green-600" />
+                  <span v-else class="text-xs text-gray-400">Click para activar</span>
                 </div>
+              </button>
+              <p class="text-xs text-gray-500 mt-2">
+                El tablero predeterminado se selecciona automáticamente al iniciar la app
+              </p>
+            </div>
+
+            <!-- Badge predeterminado (si hay 1 solo tablero) -->
+            <div v-if="cantidadBoards === 1" class="mb-4 p-3 bg-green-50 border border-green-200 rounded-xl">
+              <div class="flex items-center gap-2">
+                <Check :size="16" class="text-green-600" />
+                <span class="text-sm font-bold text-green-700">Tablero predeterminado</span>
               </div>
+              <p class="text-xs text-green-600 mt-1">
+                Con un solo tablero, este es automáticamente el predeterminado
+              </p>
+            </div>
+
+            <!-- Mensaje de error -->
+            <p v-if="errorBoard" class="text-sm text-red-600 mb-3 text-center">{{ errorBoard }}</p>
+
+            <!-- Botones -->
+            <div class="flex gap-2">
+              <button
+                @click="cancelarEdicionBoard"
+                type="button"
+                class="flex-1 py-3 rounded-xl font-bold bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                @click="guardarBoard(boardId)"
+                :disabled="!nombreBoardTemp.trim() || cargandoAccion === `editar-${boardId}`"
+                type="button"
+                class="flex-1 py-3 rounded-xl font-bold bg-black text-white hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                <Loader2 v-if="cargandoAccion === `editar-${boardId}`" :size="16" class="animate-spin" />
+                <span v-else>Guardar</span>
+              </button>
             </div>
           </div>
 
-          <!-- Acciones del Board -->
-          <div class="px-4 pb-4 flex gap-2">
-            <!-- Si es owner: puede eliminar -->
-            <button
-              v-if="esOwnerDelBoard(boardId)"
-              @click.stop="eliminarBoard(boardId)"
-              :disabled="cargandoAccion === `eliminar-${boardId}`"
-              class="flex-1 py-2.5 rounded-xl text-sm font-bold bg-red-50 text-red-600 hover:bg-red-100 transition-all flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95"
-            >
-              <Loader2
-                v-if="cargandoAccion === `eliminar-${boardId}`"
-                :size="14"
-                class="animate-spin"
-              />
-              <template v-else>
-                <Trash2 :size="14" />
-                Eliminar tablero
-              </template>
-            </button>
+          <!-- MODO NORMAL -->
+          <div v-else @click="gastosStore.seleccionarBoard(boardId)" class="p-5 cursor-pointer">
+            <!-- Header con icono, nombre y botón editar -->
+            <div class="flex items-start justify-between mb-3">
+              <div class="flex items-center gap-3 flex-1">
+                <!-- Icono del board -->
+                <div
+                  class="w-12 h-12 rounded-xl flex items-center justify-center shadow-sm shrink-0"
+                  :class="gastosStore.boardActivo === boardId
+                    ? 'bg-linear-to-br from-gray-800 to-black text-white'
+                    : 'bg-linear-to-br from-gray-100 to-gray-200 text-gray-500'"
+                >
+                  <component :is="getIcono(boardsData[boardId]?.icono || 'users')" :size="22" stroke-width="2.5" />
+                </div>
 
-            <!-- Si NO es owner: puede salir -->
-            <button
-              v-else
-              @click.stop="salirDelBoard(boardId)"
-              :disabled="cargandoAccion === `salir-${boardId}`"
-              class="flex-1 py-2.5 rounded-xl text-sm font-bold bg-orange-50 text-orange-600 hover:bg-orange-100 transition-all flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95"
-            >
-              <Loader2
-                v-if="cargandoAccion === `salir-${boardId}`"
-                :size="14"
-                class="animate-spin"
-              />
-              <template v-else>
-                <LogOut :size="14" />
-                Salir del tablero
-              </template>
-            </button>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 mb-1">
+                    <h3 class="font-black text-gray-900 truncate">
+                      {{ boardsData[boardId]?.nombre || 'Cargando...' }}
+                    </h3>
+                    <Crown v-if="boardsData[boardId]?.owner === authStore.user?.uid" :size="14" class="text-yellow-500 shrink-0" />
+
+                    <!-- Badge Predeterminado -->
+                    <span
+                      v-if="esDefault(boardId)"
+                      class="text-xs font-bold px-2 py-0.5 rounded-md bg-green-100 text-green-700 shrink-0"
+                    >
+                      ★ Default
+                    </span>
+                  </div>
+
+                  <!-- Info del board -->
+                  <div class="flex items-center gap-3 text-xs">
+                    <span class="text-gray-500">
+                      <span class="font-mono">{{ boardId.slice(-8) }}</span>
+                    </span>
+                    <span class="text-gray-400">
+                      {{ membersData[boardId]?.length || 0 }} miembro{{ (membersData[boardId]?.length || 0) !== 1 ? 's' : '' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Botón Editar -->
+              <button
+                @click.stop="iniciarEdicionBoard(boardId)"
+                class="w-9 h-9 flex items-center justify-center bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors shrink-0"
+                title="Editar tablero"
+              >
+                <Edit3 :size="14" />
+              </button>
+            </div>
+
+            <!-- Miembros con avatares -->
+            <div class="bg-gray-50 rounded-xl p-3">
+              <div class="flex flex-wrap gap-2">
+                <div
+                  v-for="member in membersData[boardId]"
+                  :key="member.uid"
+                  class="flex items-center gap-2 bg-white px-2 py-1.5 rounded-lg border border-gray-200"
+                >
+                  <img
+                    :src="member.photoURL"
+                    :alt="member.displayName"
+                    class="w-6 h-6 rounded-full object-cover"
+                    @error="handleImageError"
+                  />
+                  <span class="text-xs font-bold text-gray-700 truncate max-w-[100px]">
+                    {{ member.displayName }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Acciones -->
+            <div class="flex gap-2 mt-3">
+              <button
+                @click.stop="copiarCodigo(boardId)"
+                :id="'copy-' + boardId"
+                class="flex-1 py-2.5 rounded-xl text-sm font-bold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all flex items-center justify-center gap-2 active:scale-95"
+              >
+                <Copy :size="14" />
+                Copiar código
+              </button>
+
+              <!-- Si es owner: puede eliminar -->
+              <button
+                v-if="boardsData[boardId]?.owner === authStore.user?.uid"
+                @click.stop="eliminarBoard(boardId)"
+                :disabled="cargandoAccion === `eliminar-${boardId}`"
+                class="flex-1 py-2.5 rounded-xl text-sm font-bold bg-red-50 text-red-600 hover:bg-red-100 transition-all flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95"
+              >
+                <Loader2
+                  v-if="cargandoAccion === `eliminar-${boardId}`"
+                  :size="14"
+                  class="animate-spin"
+                />
+                <template v-else>
+                  <Trash2 :size="14" />
+                  Eliminar
+                </template>
+              </button>
+
+              <!-- Si NO es owner: puede salir -->
+              <button
+                v-else
+                @click.stop="salirDelBoard(boardId)"
+                :disabled="cargandoAccion === `salir-${boardId}`"
+                class="flex-1 py-2.5 rounded-xl text-sm font-bold bg-orange-50 text-orange-600 hover:bg-orange-100 transition-all flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95"
+              >
+                <Loader2
+                  v-if="cargandoAccion === `salir-${boardId}`"
+                  :size="14"
+                  class="animate-spin"
+                />
+                <template v-else>
+                  <LogOut :size="14" />
+                  Salir
+                </template>
+              </button>
+            </div>
           </div>
         </div>
       </div>

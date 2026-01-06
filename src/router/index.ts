@@ -9,6 +9,8 @@ import MethodsView from '../views/MethodsView.vue'
 import LoginView from '../views/LoginView.vue'
 import ProfileView from '../views/ProfileView.vue'
 import OnboardingView from '../views/OnboardingView.vue'
+import IngresosView from '../views/IngresosView.vue'
+import GastosView from '../views/GastosView.vue'
 
 // IMPORTAR EL STORE DE AUTH
 import { useAuthStore } from '../stores/auth'
@@ -26,6 +28,8 @@ const router = createRouter({
     { path: '/categories', name: 'categories', component: CategoriesView },
     { path: '/methods', name: 'methods', component: MethodsView },
     { path: '/profile', name: 'profile', component: ProfileView },
+    { path: '/ingresos', name: 'ingresos', component: IngresosView },
+    { path: '/gastos', name: 'gastos', component: GastosView },
   ],
 })
 
