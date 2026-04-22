@@ -3,7 +3,7 @@ import { onMounted, watch } from 'vue'
 import { RouterView, useRoute, RouterLink } from 'vue-router'
 import { useGastosStore } from './stores/gastos'
 import { useAuthStore } from './stores/auth'
-import { Home, PieChart, Plus, Wallet, Users } from 'lucide-vue-next'
+import { Home, PieChart, Plus, Wallet, Tags } from 'lucide-vue-next'
 
 const gastosStore = useGastosStore()
 const authStore = useAuthStore()
@@ -109,16 +109,16 @@ watch(
           </RouterLink>
 
           <RouterLink
-            to="/profile"
+            to="/categories"
             class="group flex flex-col items-center justify-center gap-1 w-12 text-gray-400 transition-colors hover:text-gray-600"
             active-class="!text-black"
           >
             <div
               class="transform transition-transform duration-200 group-[.router-link-active]:scale-110"
             >
-              <Users :size="24" stroke-width="2.5" />
+              <Tags :size="24" stroke-width="2.5" />
             </div>
-            <span class="text-[10px] font-bold tracking-wide">Tableros</span>
+            <span class="text-[10px] font-bold tracking-wide">Categorías</span>
           </RouterLink>
         </div>
       </nav>
@@ -127,7 +127,6 @@ watch(
 </template>
 
 <style scoped>
-/* Solo mantenemos esto porque Tailwind necesita un plugin para 'env()' */
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom);
 }

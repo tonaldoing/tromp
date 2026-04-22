@@ -1,0 +1,25 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users can only read/write their own profile
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // Gastos subcollection
+      match /gastos/{gastoId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // Presupuestos subcollection
+      match /presupuestos/{mesKey} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // Config subcollection
+      match /config/{configId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+  }
+}

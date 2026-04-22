@@ -4,17 +4,16 @@ import { useRoute, useRouter } from 'vue-router'
 import { useGastosStore } from '../stores/gastos'
 import { storeToRefs } from 'pinia'
 import { getIcono } from '../utils/icons'
-import { ArrowLeft, Trash2, Save, Tag, Users } from 'lucide-vue-next'
+import { ArrowLeft, Trash2, Save, Tag } from 'lucide-vue-next'
 
 const store = useGastosStore()
-const { categorias, usuarios } = storeToRefs(store)
+const { categorias } = storeToRefs(store)
 const router = useRouter()
 const route = useRoute()
 
 const monto = ref('')
 const descripcion = ref('')
 const categoria = ref('')
-const pagadoPor = ref('')
 const guardando = ref(false)
 
 const gastoId = route.params.id as string
@@ -25,7 +24,6 @@ onMounted(() => {
     monto.value = gasto.monto.toString()
     descripcion.value = gasto.descripcion
     categoria.value = gasto.categoria
-    pagadoPor.value = gasto.pagadoPor
   } else {
     router.push('/')
   }
@@ -38,7 +36,6 @@ const actualizar = async () => {
     monto: Number(monto.value),
     descripcion: descripcion.value,
     categoria: categoria.value,
-    pagadoPor: pagadoPor.value,
   })
   guardando.value = false
   router.push('/')
@@ -124,35 +121,6 @@ const eliminar = async () => {
         </div>
       </div>
 
-      <div>
-        <label
-          class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-1"
-        >
-          <Users :size="14" /> Responsable
-        </label>
-        <div class="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-          <button
-            v-for="user in usuarios"
-            :key="user.id"
-            @click="pagadoPor = user.id"
-            class="min-w-[70px] p-3 rounded-2xl border-2 flex flex-col items-center gap-2 transition-all bg-white"
-            :class="
-              pagadoPor === user.id
-                ? 'border-black opacity-100 shadow-md'
-                : 'border-transparent opacity-50 grayscale hover:opacity-100'
-            "
-          >
-            <div
-              class="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center bg-gray-100"
-            >
-              <img v-if="user.foto" :src="user.foto" class="w-full h-full object-cover" />
-              <component v-else :is="getIcono(user.emoji)" :size="20" />
-            </div>
-            <span class="text-xs font-bold truncate max-w-full">{{ user.nombre }}</span>
-          </button>
-        </div>
-      </div>
-
       <button
         @click="actualizar"
         :disabled="guardando"
@@ -164,13 +132,3 @@ const eliminar = async () => {
     </div>
   </div>
 </template>
-
-<style scoped>
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
-}
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-</style>

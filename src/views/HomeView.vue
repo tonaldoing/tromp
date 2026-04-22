@@ -5,17 +5,13 @@ import { useGastosStore } from '../stores/gastos'
 import { useAuthStore } from '../stores/auth'
 import { storeToRefs } from 'pinia'
 import MonthSelector from '../components/MonthSelector.vue'
-import BoardSelector from '../components/BoardSelector.vue'
 import { getIcono } from '../utils/icons'
 
 import {
   ArrowUpRight,
   ArrowDownLeft,
-  Wallet,
-  Tags,
-  CreditCard,
   Inbox,
-  HelpCircle,
+  LogOut,
 } from 'lucide-vue-next'
 
 const store = useGastosStore()
@@ -25,7 +21,6 @@ const router = useRouter()
 const {
   movimientosDelMes,
   cargando,
-  usuarios,
   totalGastosDelMes,
   totalIngresosDelMes,
   balanceDelMes,
@@ -51,19 +46,8 @@ const formatearDinero = (monto: number) => {
   }).format(monto)
 }
 
-const getUsuario = (id: string) => {
-  const encontrado = usuarios.value.find((u) => u.id === id)
-  return (
-    encontrado || { id: '', emoji: 'help', nombre: '?', email: '', foto: '' }
-  )
-}
-
 const irAEditar = (id: string) => {
   router.push(`/edit/${id}`)
-}
-
-const irAPerfil = () => {
-  router.push('/profile')
 }
 </script>
 
@@ -75,19 +59,14 @@ const irAPerfil = () => {
         <h1 class="text-2xl font-extrabold text-gray-900 tracking-tight">
           Hola, {{ authStore.userProfile?.displayName?.split(' ')[0] || 'Usuario' }}
         </h1>
-        <div v-if="store.boardActivo" class="mt-2">
-          <BoardSelector />
-        </div>
       </div>
 
-      <button @click="irAPerfil" class="relative group active:scale-95 transition-transform shrink-0">
-        <div
-          class="absolute inset-0 bg-blue-500 rounded-full blur opacity-20 group-hover:opacity-40 transition-opacity"
-        ></div>
-        <img
-          :src="authStore.userProfile?.photoURL || 'https://via.placeholder.com/150'"
-          class="w-12 h-12 rounded-full border-2 border-white shadow-sm object-cover relative z-10"
-        />
+      <button
+        @click="authStore.logout()"
+        class="w-10 h-10 flex items-center justify-center bg-white rounded-full border border-gray-200 shadow-sm text-gray-400 hover:text-red-500 hover:border-red-200 active:scale-95 transition-all shrink-0"
+        title="Cerrar sesión"
+      >
+        <LogOut :size="18" />
       </button>
     </header>
 
@@ -116,9 +95,8 @@ const irAPerfil = () => {
 
       <div class="grid grid-cols-2 gap-4">
         <!-- Ingresos -->
-        <RouterLink
-          to="/ingresos"
-          class="bg-green-50/50 rounded-2xl p-3 flex flex-col border border-green-100/50 hover:bg-green-100/50 hover:border-green-200 active:scale-95 transition-all cursor-pointer"
+        <div
+          class="bg-green-50/50 rounded-2xl p-3 flex flex-col border border-green-100/50"
         >
           <div class="flex items-center gap-2 mb-1">
             <div
@@ -131,12 +109,11 @@ const irAPerfil = () => {
           <span class="text-lg font-bold text-gray-800"
             >${{ formatearDinero(totalIngresosDelMes) }}</span
           >
-        </RouterLink>
+        </div>
 
         <!-- Gastos -->
-        <RouterLink
-          to="/gastos"
-          class="bg-red-50/50 rounded-2xl p-3 flex flex-col border border-red-100/50 hover:bg-red-100/50 hover:border-red-200 active:scale-95 transition-all cursor-pointer"
+        <div
+          class="bg-red-50/50 rounded-2xl p-3 flex flex-col border border-red-100/50"
         >
           <div class="flex items-center gap-2 mb-1">
             <div
@@ -149,47 +126,8 @@ const irAPerfil = () => {
           <span class="text-lg font-bold text-gray-800"
             >${{ formatearDinero(totalGastosDelMes) }}</span
           >
-        </RouterLink>
+        </div>
       </div>
-    </div>
-
-    <!-- Accesos rápidos -->
-    <div class="flex gap-3 mb-8 overflow-x-auto pb-2 scrollbar-hide">
-      <RouterLink
-        to="/budget"
-        class="flex items-center gap-2 bg-white border border-gray-200 pl-3 pr-4 py-2.5 rounded-2xl shadow-sm active:scale-95 transition-transform whitespace-nowrap group"
-      >
-        <div
-          class="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center text-amber-600 group-hover:bg-amber-100 transition-colors"
-        >
-          <Wallet :size="16" />
-        </div>
-        <span class="text-xs font-bold text-gray-700">Topes</span>
-      </RouterLink>
-
-      <RouterLink
-        to="/categories"
-        class="flex items-center gap-2 bg-white border border-gray-200 pl-3 pr-4 py-2.5 rounded-2xl shadow-sm active:scale-95 transition-transform whitespace-nowrap group"
-      >
-        <div
-          class="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center text-purple-600 group-hover:bg-purple-100 transition-colors"
-        >
-          <Tags :size="16" />
-        </div>
-        <span class="text-xs font-bold text-gray-700">Categorías</span>
-      </RouterLink>
-
-      <RouterLink
-        to="/methods"
-        class="flex items-center gap-2 bg-white border border-gray-200 pl-3 pr-4 py-2.5 rounded-2xl shadow-sm active:scale-95 transition-transform whitespace-nowrap group"
-      >
-        <div
-          class="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:bg-emerald-100 transition-colors"
-        >
-          <CreditCard :size="16" />
-        </div>
-        <span class="text-xs font-bold text-gray-700">Pagos</span>
-      </RouterLink>
     </div>
 
     <!-- Progreso de Presupuesto por Categoría -->
@@ -222,7 +160,6 @@ const irAPerfil = () => {
             </div>
           </div>
 
-          <!-- Barra de progreso -->
           <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
             <div
               class="h-full rounded-full transition-all duration-500"
@@ -237,7 +174,6 @@ const irAPerfil = () => {
             ></div>
           </div>
 
-          <!-- Saldo disponible -->
           <div class="flex items-center justify-between mt-2">
             <p class="text-xs text-gray-500">
               {{ (estadoPresupuesto[cat.nombre]?.porcentaje || 0).toFixed(0) }}% usado
@@ -305,49 +241,29 @@ const irAPerfil = () => {
         ></div>
 
         <div class="flex items-center gap-4 pl-2">
-          <!-- Avatar / Icono -->
-          <div class="relative">
-            <!-- Para ingresos mostramos icono de ingreso -->
-            <div
+          <!-- Icono -->
+          <div
+            class="w-12 h-12 rounded-full flex items-center justify-center border shadow-sm"
+            :class="
+              mov.tipo === 'ingreso'
+                ? 'bg-green-100 text-green-600 border-green-200'
+                : 'bg-gray-50 text-gray-600 border-gray-100'
+            "
+          >
+            <component
               v-if="mov.tipo === 'ingreso'"
-              class="w-12 h-12 rounded-full flex items-center justify-center bg-green-100 text-green-600 border border-green-200"
-            >
-              <ArrowDownLeft :size="20" stroke-width="2.5" />
-            </div>
-
-            <!-- Para gastos mostramos usuario -->
-            <div
+              :is="ArrowDownLeft"
+              :size="20"
+              stroke-width="2.5"
+            />
+            <component
               v-else
-              class="w-12 h-12 rounded-full flex items-center justify-center text-xl border border-gray-100 shadow-sm bg-gray-50 overflow-hidden"
-            >
-              <HelpCircle
-                v-if="getUsuario(mov.pagadoPor).nombre === '?'"
-                :size="20"
-                class="opacity-50"
-              />
-
-              <img
-                v-else-if="getUsuario(mov.pagadoPor).foto"
-                :src="getUsuario(mov.pagadoPor).foto"
-                class="w-full h-full object-cover"
-              />
-
-              <component
-                v-else
-                :is="getIcono(getUsuario(mov.pagadoPor).emoji)"
-                :size="20"
-                stroke-width="2.5"
-                class="opacity-80"
-              />
-            </div>
-
-            <!-- Badge método de pago (solo gastos) -->
-            <div
-              v-if="mov.metodoPago && mov.tipo === 'gasto'"
-              class="absolute -bottom-1 -right-1 bg-white text-[9px] px-1.5 py-0.5 rounded-md border border-gray-100 shadow-sm text-gray-500 font-bold tracking-tighter"
-            >
-              {{ mov.metodoPago.slice(0, 3).toUpperCase() }}
-            </div>
+              :is="getIcono(
+                store.categorias.find(c => c.nombre === mov.categoria)?.icono || 'star'
+              )"
+              :size="20"
+              stroke-width="2.5"
+            />
           </div>
 
           <div class="flex flex-col">

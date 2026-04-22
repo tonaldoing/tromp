@@ -12,23 +12,10 @@ import {
   setDoc,
   deleteDoc,
   updateDoc,
-  arrayUnion,
-  arrayRemove,
   getDoc,
-  getDocs,
-  writeBatch,
 } from 'firebase/firestore'
-import { useAuthStore } from './auth'
 
 // --- INTERFACES ---
-export interface Usuario {
-  id: string
-  nombre: string
-  emoji: string
-  email?: string
-  foto?: string
-}
-
 export interface Categoria {
   id: string
   nombre: string
@@ -41,22 +28,10 @@ export interface Gasto {
   monto: number
   descripcion: string
   fecha: Date
-  pagadoPor: string
   categoria: string
   tipo: 'gasto' | 'ingreso'
-  metodoPago: string
   cuotaActual?: number
   totalCuotas?: number
-}
-
-export interface Board {
-  id: string
-  nombre: string
-  icono: string
-  esDefault: boolean
-  owner: string
-  members: string[]
-  createdAt: Timestamp
 }
 
 export const useGastosStore = defineStore('gastos', () => {
@@ -64,11 +39,6 @@ export const useGastosStore = defineStore('gastos', () => {
   const gastos = ref<Gasto[]>([])
   const presupuestos = ref<Record<string, number>>({})
   const categorias = ref<Categoria[]>([])
-  const usuarios = ref<Usuario[]>([])
-  const metodosPago = ref<string[]>([])
-
-  const boardActivo = ref<string | null>(null)
-  const infoBoard = ref<Board | null>(null)
 
   const fechaVisual = ref(new Date())
   const cargando = ref(false)
@@ -77,135 +47,29 @@ export const useGastosStore = defineStore('gastos', () => {
   let unsubscribes: Function[] = []
 
   // --- HELPERS ---
-  const checkBoard = () => {
-    if (!boardActivo.value) throw new Error('No hay tablero seleccionado')
+  const getUid = () => {
+    const uid = auth.currentUser?.uid
+    if (!uid) throw new Error('Usuario no autenticado')
+    return uid
   }
 
-  const getConfigRef = () => {
-    checkBoard()
-    return doc(db, `boards/${boardActivo.value}/config/general`)
-  }
+  const getConfigRef = () => doc(db, `users/${getUid()}/config/general`)
 
   // --- INICIALIZAR ---
   const inicializar = async () => {
-    const authStore = useAuthStore()
-
-    // Si no tiene perfil o NO tiene tableros, limpiar todo y salir
-    if (!authStore.userProfile || !authStore.userProfile.boards || authStore.userProfile.boards.length === 0) {
+    const uid = auth.currentUser?.uid
+    if (!uid) {
       limpiarDatos()
       return
     }
 
-    // Si ya hay un board activo, verificar que aún existe en la lista de boards del usuario
-    if (boardActivo.value) {
-      const existeEnLista = authStore.userProfile.boards.includes(boardActivo.value)
-      if (existeEnLista) {
-        // El board actual es válido, no hacer nada
-        return
-      } else {
-        // El board actual ya no está en la lista del usuario, limpiar
-        limpiarDatos()
-      }
-    }
-
-    // Buscar board predeterminado
-    let boardASeleccionar = authStore.userProfile.boards[0]
-
-    for (const boardId of authStore.userProfile.boards) {
-      try {
-        const boardSnap = await getDoc(doc(db, 'boards', boardId))
-        if (boardSnap.exists() && boardSnap.data().esDefault === true) {
-          boardASeleccionar = boardId
-          break
-        }
-      } catch (error) {
-        console.warn('Error loading board:', boardId, error)
-      }
-    }
-
-    if (boardASeleccionar) {
-      await seleccionarBoard(boardASeleccionar)
-    }
-  }
-
-  // Helper para subscribirse a presupuestos del mes actual
-  let presupuestosUnsub: Function | null = null
-
-  const subscribirseAPresupuestos = () => {
-    if (!boardActivo.value) return
-
-    // Cancelar subscripción anterior
-    if (presupuestosUnsub) {
-      presupuestosUnsub()
-    }
-
-    const year = fechaVisual.value.getFullYear()
-    const month = fechaVisual.value.getMonth()
-    const mesKey = `${year}-${String(month + 1).padStart(2, '0')}`
-
-    // Usar subcolección: boards/{id}/presupuestos/{mesKey}
-    const presuRef = doc(db, `boards/${boardActivo.value}/presupuestos/${mesKey}`)
-
-    presupuestosUnsub = onSnapshot(presuRef, (snap) => {
-      if (snap.exists()) {
-        presupuestos.value = snap.data() as Record<string, number>
-      } else {
-        presupuestos.value = {}
-      }
-    })
-
-    unsubscribes.push(presupuestosUnsub)
-  }
-
-  // --- SELECCIONAR TABLERO ---
-  const seleccionarBoard = async (boardId: string) => {
-    // MIGRACIÓN: Agregar campos faltantes a boards existentes
-    const boardRef = doc(db, 'boards', boardId)
-    const boardSnap = await getDoc(boardRef)
-
-    if (boardSnap.exists()) {
-      const data = boardSnap.data()
-      const updates: any = {}
-      let needsUpdate = false
-
-      if (data.icono === undefined) {
-        updates.icono = 'users'
-        needsUpdate = true
-      }
-
-      if (data.esDefault === undefined) {
-        const authStore = useAuthStore()
-        const userBoards = authStore.userProfile?.boards || []
-        // Primer board del usuario es default por defecto
-        updates.esDefault = userBoards.length === 1 || userBoards[0] === boardId
-        needsUpdate = true
-      }
-
-      if (needsUpdate) {
-        await updateDoc(boardRef, updates)
-      }
-    }
-
+    // Limpiar suscripciones previas
     unsubscribes.forEach((u) => u())
     unsubscribes = []
-    presupuestosUnsub = null
-
-    boardActivo.value = boardId
     cargando.value = true
 
-    const gastosRef = collection(db, `boards/${boardId}/gastos`)
-    const configRef = doc(db, `boards/${boardId}/config/general`)
-
-    // A. Info del Board
-    unsubscribes.push(
-      onSnapshot(boardRef, (doc) => {
-        if (doc.exists()) {
-          infoBoard.value = { id: doc.id, ...doc.data() } as Board
-        }
-      }),
-    )
-
-    // B. Gastos
+    // A. Gastos
+    const gastosRef = collection(db, `users/${uid}/gastos`)
     const q = query(gastosRef, orderBy('fecha', 'desc'))
     unsubscribes.push(
       onSnapshot(q, (snap) => {
@@ -218,106 +82,72 @@ export const useGastosStore = defineStore('gastos', () => {
       }),
     )
 
-    // C. Configuración
+    // B. Configuración (categorías)
+    const configRef = doc(db, `users/${uid}/config/general`)
     unsubscribes.push(
       onSnapshot(configRef, (snap) => {
         if (snap.exists()) {
           const d = snap.data()
-
-          // Filtrar categorías corruptas y migrar las que no tienen tipo
           categorias.value = (d.categorias || [])
             .filter((c: any) => c && c.nombre && c.id && c.icono)
             .map((c: any) => ({
               ...c,
               tipo: c.tipo || 'gasto',
             }))
-
-          const listaUsuarios = d.usuarios || []
-          usuarios.value = listaUsuarios
-          metodosPago.value = d.metodosPago || []
-
-          // Sincronización de Foto de Perfil
-          const miEmail = auth.currentUser?.email
-          const miFoto = auth.currentUser?.photoURL
-
-          if (miEmail && miFoto) {
-            const yoEnElArray = listaUsuarios.find((u: Usuario) => u.email === miEmail)
-            if (yoEnElArray && yoEnElArray.foto !== miFoto) {
-              const listaNueva = listaUsuarios.map((u: Usuario) =>
-                u.id === yoEnElArray.id ? { ...u, foto: miFoto } : u,
-              )
-              updateDoc(configRef, { usuarios: listaNueva })
-            }
-          }
-        } else {
-          crearDefaults(boardId)
         }
       }),
     )
 
-    // D. Presupuestos del mes actual
+    // C. Presupuestos del mes actual
     subscribirseAPresupuestos()
   }
 
-  // --- CREAR DEFAULTS ---
-  const crearDefaults = async (boardId: string) => {
-    const me: Usuario = {
-      id: 'yo',
-      nombre: 'Yo',
-      emoji: 'user',
+  // --- PRESUPUESTOS SUBSCRIPTION ---
+  let presupuestosUnsub: Function | null = null
+
+  const subscribirseAPresupuestos = () => {
+    const uid = auth.currentUser?.uid
+    if (!uid) return
+
+    if (presupuestosUnsub) {
+      presupuestosUnsub()
     }
 
-    // Categorías de GASTO por defecto
-    const defaultCatsGasto: Categoria[] = [
-      { id: 'super', nombre: 'Supermercado', icono: 'shopping-cart', tipo: 'gasto' },
-      { id: 'salidas', nombre: 'Salidas', icono: 'beer', tipo: 'gasto' },
-      { id: 'servicios', nombre: 'Servicios', icono: 'zap', tipo: 'gasto' },
-      { id: 'transporte', nombre: 'Transporte', icono: 'car', tipo: 'gasto' },
-      { id: 'varios', nombre: 'Varios', icono: 'star', tipo: 'gasto' },
-    ]
+    const year = fechaVisual.value.getFullYear()
+    const month = fechaVisual.value.getMonth()
+    const mesKey = `${year}-${String(month + 1).padStart(2, '0')}`
 
-    // Categorías de INGRESO por defecto
-    const defaultCatsIngreso: Categoria[] = [
-      { id: 'sueldo', nombre: 'Sueldo', icono: 'briefcase', tipo: 'ingreso' },
-      { id: 'freelance', nombre: 'Freelance', icono: 'laptop', tipo: 'ingreso' },
-      { id: 'regalo', nombre: 'Regalo', icono: 'gift', tipo: 'ingreso' },
-      { id: 'venta', nombre: 'Venta', icono: 'tag', tipo: 'ingreso' },
-      { id: 'otros_ing', nombre: 'Otros', icono: 'plus-circle', tipo: 'ingreso' },
-    ]
+    const presuRef = doc(db, `users/${uid}/presupuestos/${mesKey}`)
 
-    await setDoc(
-      doc(db, `boards/${boardId}/config/general`),
-      {
-        categorias: [...defaultCatsGasto, ...defaultCatsIngreso],
-        usuarios: [me],
-        metodosPago: ['Efectivo', 'Débito', 'Crédito'],
-      },
-      { merge: true },
-    )
+    presupuestosUnsub = onSnapshot(presuRef, (snap) => {
+      if (snap.exists()) {
+        presupuestos.value = snap.data() as Record<string, number>
+      } else {
+        presupuestos.value = {}
+      }
+    })
+
+    unsubscribes.push(presupuestosUnsub)
   }
 
   // --- LIMPIAR DATOS ---
   const limpiarDatos = () => {
     gastos.value = []
     categorias.value = []
-    usuarios.value = []
-    metodosPago.value = []
     presupuestos.value = {}
     unsubscribes.forEach((u) => u())
     unsubscribes = []
-    boardActivo.value = null
-    infoBoard.value = null
+    presupuestosUnsub = null
   }
 
   // ===========================================
-  // CATEGORÍAS - CRUD COMPLETO
+  // CATEGORÍAS - CRUD
   // ===========================================
 
   const categoriasGasto = computed(() => categorias.value.filter((c) => c.tipo === 'gasto'))
   const categoriasIngreso = computed(() => categorias.value.filter((c) => c.tipo === 'ingreso'))
 
   const agregarCategoria = async (categoria: Categoria) => {
-    checkBoard()
     const existe = categorias.value.some(
       (c) =>
         c?.nombre?.toLowerCase() === categoria.nombre.toLowerCase() && c.tipo === categoria.tipo,
@@ -331,7 +161,6 @@ export const useGastosStore = defineStore('gastos', () => {
   }
 
   const editarCategoria = async (categoriaEditada: Categoria) => {
-    checkBoard()
     const listaNueva = categorias.value.map((c) =>
       c.id === categoriaEditada.id ? categoriaEditada : c,
     )
@@ -339,39 +168,8 @@ export const useGastosStore = defineStore('gastos', () => {
   }
 
   const borrarCategoria = async (categoria: Categoria) => {
-    checkBoard()
     const listaNueva = categorias.value.filter((c) => c.id !== categoria.id)
     await updateDoc(getConfigRef(), { categorias: listaNueva })
-  }
-
-  // ===========================================
-  // USUARIOS
-  // ===========================================
-  // Los usuarios se agregan automáticamente al tablero mediante invitación
-  // No hay CRUD manual de usuarios
-
-  // ===========================================
-  // MÉTODOS DE PAGO - CRUD
-  // ===========================================
-
-  const agregarMetodo = async (metodo: string) => {
-    checkBoard()
-    if (metodosPago.value.includes(metodo)) {
-      throw new Error('Ya existe ese método de pago')
-    }
-
-    const listaNueva = [...metodosPago.value, metodo]
-    await updateDoc(getConfigRef(), { metodosPago: listaNueva })
-  }
-
-  const borrarMetodo = async (metodo: string) => {
-    checkBoard()
-    // Proteger métodos fijos
-    if (metodo === 'Efectivo' || metodo === 'Crédito') {
-      throw new Error('No se pueden eliminar los métodos Efectivo y Crédito')
-    }
-    const listaNueva = metodosPago.value.filter((m) => m !== metodo)
-    await updateDoc(getConfigRef(), { metodosPago: listaNueva })
   }
 
   // ===========================================
@@ -379,40 +177,37 @@ export const useGastosStore = defineStore('gastos', () => {
   // ===========================================
 
   const actualizarPresupuesto = async (categoria: string, monto: number, anio?: number, mes?: number) => {
-    checkBoard()
-    // Si no se especifica año/mes, usar la fecha visual actual
+    const uid = getUid()
     const year = anio ?? fechaVisual.value.getFullYear()
     const month = mes ?? fechaVisual.value.getMonth()
     const mesKey = `${year}-${String(month + 1).padStart(2, '0')}`
 
     await setDoc(
-      doc(db, `boards/${boardActivo.value}/presupuestos/${mesKey}`),
+      doc(db, `users/${uid}/presupuestos/${mesKey}`),
       { [categoria]: monto },
       { merge: true },
     )
   }
 
   const borrarPresupuesto = async (categoria: string, anio?: number, mes?: number) => {
-    checkBoard()
+    const uid = getUid()
     const year = anio ?? fechaVisual.value.getFullYear()
     const month = mes ?? fechaVisual.value.getMonth()
     const mesKey = `${year}-${String(month + 1).padStart(2, '0')}`
 
     await setDoc(
-      doc(db, `boards/${boardActivo.value}/presupuestos/${mesKey}`),
+      doc(db, `users/${uid}/presupuestos/${mesKey}`),
       { [categoria]: 0 },
       { merge: true },
     )
   }
 
   const copiarPresupuestoMesAnterior = async () => {
-    checkBoard()
+    const uid = getUid()
 
-    // Mes actual
     const yearActual = fechaVisual.value.getFullYear()
     const monthActual = fechaVisual.value.getMonth()
 
-    // Mes anterior
     const fechaAnterior = new Date(fechaVisual.value)
     fechaAnterior.setMonth(fechaAnterior.getMonth() - 1)
     const yearAnterior = fechaAnterior.getFullYear()
@@ -421,17 +216,12 @@ export const useGastosStore = defineStore('gastos', () => {
     const mesKeyAnterior = `${yearAnterior}-${String(monthAnterior + 1).padStart(2, '0')}`
     const mesKeyActual = `${yearActual}-${String(monthActual + 1).padStart(2, '0')}`
 
-    // Leer presupuesto mes anterior
-    const presuAnteriorRef = doc(db, `boards/${boardActivo.value}/presupuestos/${mesKeyAnterior}`)
+    const presuAnteriorRef = doc(db, `users/${uid}/presupuestos/${mesKeyAnterior}`)
     const presuAnteriorSnap = await getDoc(presuAnteriorRef)
 
     if (presuAnteriorSnap.exists()) {
       const presuAnterior = presuAnteriorSnap.data()
-      // Copiar al mes actual
-      await setDoc(
-        doc(db, `boards/${boardActivo.value}/presupuestos/${mesKeyActual}`),
-        presuAnterior,
-      )
+      await setDoc(doc(db, `users/${uid}/presupuestos/${mesKeyActual}`), presuAnterior)
     }
   }
 
@@ -442,32 +232,27 @@ export const useGastosStore = defineStore('gastos', () => {
   const agregarMovimiento = async (
     monto: number,
     descripcion: string,
-    pagadoPor: string,
     categoria: string,
     tipo: 'gasto' | 'ingreso',
-    metodoPago: string,
     cuotas: number = 1,
     fechaCustom?: Date,
   ) => {
-    checkBoard()
-    const colRef = collection(db, `boards/${boardActivo.value}/gastos`)
+    const uid = getUid()
+    const colRef = collection(db, `users/${uid}/gastos`)
     const fechaBase = fechaCustom || fechaVisual.value
 
-    // Sin cuotas o es ingreso - un solo documento
     if (cuotas <= 1 || tipo === 'ingreso') {
       await addDoc(colRef, {
         monto,
         descripcion,
-        pagadoPor: tipo === 'ingreso' ? '' : pagadoPor,
         categoria,
         tipo,
-        metodoPago: tipo === 'ingreso' ? '' : metodoPago,
         fecha: Timestamp.fromDate(fechaBase),
       })
       return
     }
 
-    // Con cuotas (solo gastos)
+    // Con cuotas
     const montoCuota = Number((monto / cuotas).toFixed(2))
     const batchPromises = []
 
@@ -479,10 +264,8 @@ export const useGastosStore = defineStore('gastos', () => {
         addDoc(colRef, {
           monto: montoCuota,
           descripcion: `${descripcion} (${i + 1}/${cuotas})`,
-          pagadoPor,
           categoria,
           tipo: 'gasto',
-          metodoPago,
           fecha: Timestamp.fromDate(fechaCuota),
           cuotaActual: i + 1,
           totalCuotas: cuotas,
@@ -494,239 +277,20 @@ export const useGastosStore = defineStore('gastos', () => {
   }
 
   const editarGasto = async (id: string, data: Partial<Gasto>) => {
-    checkBoard()
+    const uid = getUid()
     const dataToSave = { ...data }
     if (data.fecha instanceof Date) {
       ;(dataToSave as any).fecha = Timestamp.fromDate(data.fecha)
     }
-    await setDoc(doc(db, `boards/${boardActivo.value}/gastos`, id), dataToSave, { merge: true })
+    await setDoc(doc(db, `users/${uid}/gastos`, id), dataToSave, { merge: true })
   }
 
   const borrarGasto = async (id: string) => {
-    checkBoard()
-    await deleteDoc(doc(db, `boards/${boardActivo.value}/gastos`, id))
+    const uid = getUid()
+    await deleteDoc(doc(db, `users/${uid}/gastos`, id))
   }
 
   const getGasto = (id: string) => gastos.value.find((g) => g.id === id)
-
-  // ===========================================
-  // TABLEROS
-  // ===========================================
-
-  const unirseABoard = async (boardId: string) => {
-    const authStore = useAuthStore()
-    const uid = authStore.user?.uid
-    if (!uid) throw new Error('Usuario no autenticado')
-
-    const boardRef = doc(db, 'boards', boardId)
-    const boardSnap = await getDoc(boardRef)
-
-    if (!boardSnap.exists()) {
-      throw new Error('El código del tablero no existe')
-    }
-
-    await updateDoc(boardRef, { members: arrayUnion(uid) })
-    await updateDoc(doc(db, 'users', uid), { boards: arrayUnion(boardId) })
-
-    await authStore.cargarPerfilUsuario()
-    await seleccionarBoard(boardId)
-  }
-
-  const crearNuevoBoard = async (nombre: string, icono: string = 'users') => {
-    const authStore = useAuthStore()
-    const uid = authStore.user?.uid
-    if (!uid) throw new Error('Usuario no autenticado')
-
-    if ((authStore.userProfile?.boards.length || 0) >= 2) {
-      throw new Error('Límite de 2 tableros alcanzado')
-    }
-
-    const newId = `board_${Date.now()}`
-    const cantidadActual = authStore.userProfile?.boards.length || 0
-    const esDefault = cantidadActual === 0 // Primer tablero siempre es default
-
-    await setDoc(doc(db, 'boards', newId), {
-      nombre,
-      icono,
-      esDefault,
-      owner: uid,
-      members: [uid],
-      createdAt: Timestamp.now(),
-    })
-
-    await updateDoc(doc(db, 'users', uid), { boards: arrayUnion(newId) })
-    await authStore.cargarPerfilUsuario()
-    await seleccionarBoard(newId)
-
-    return newId
-  }
-
-  const editarBoard = async (boardId: string, nombre: string, icono: string) => {
-    const authStore = useAuthStore()
-    const uid = authStore.user?.uid
-    if (!uid) throw new Error('Usuario no autenticado')
-
-    // Verificar que el usuario sea owner del board
-    const boardRef = doc(db, 'boards', boardId)
-    const boardSnap = await getDoc(boardRef)
-
-    if (!boardSnap.exists()) {
-      throw new Error('El tablero no existe')
-    }
-
-    if (boardSnap.data().owner !== uid) {
-      throw new Error('Solo el creador puede editar el tablero')
-    }
-
-    await updateDoc(boardRef, {
-      nombre,
-      icono,
-    })
-
-    // Si estamos editando el board activo, actualizar infoBoard
-    if (boardActivo.value === boardId && infoBoard.value) {
-      infoBoard.value = { ...infoBoard.value, nombre, icono }
-    }
-  }
-
-  const setDefaultBoard = async (boardId: string) => {
-    const authStore = useAuthStore()
-    const uid = authStore.user?.uid
-    if (!uid) throw new Error('Usuario no autenticado')
-
-    const userBoards = authStore.userProfile?.boards || []
-
-    if (userBoards.length === 1) {
-      throw new Error('No se puede cambiar el default con un solo tablero')
-    }
-
-    // Operación atómica con batch
-    const batch = writeBatch(db)
-
-    // Desactivar default en todos los boards del usuario
-    for (const bid of userBoards) {
-      batch.update(doc(db, 'boards', bid), { esDefault: false })
-    }
-
-    // Activar default en el board seleccionado
-    batch.update(doc(db, 'boards', boardId), { esDefault: true })
-
-    await batch.commit()
-
-    // Actualizar infoBoard si es el activo
-    if (boardActivo.value === boardId && infoBoard.value) {
-      infoBoard.value.esDefault = true
-    }
-  }
-
-  const salirDeBoard = async (boardId: string) => {
-    const authStore = useAuthStore()
-    const uid = authStore.user?.uid
-    if (!uid) throw new Error('Usuario no autenticado')
-
-    // Validar que no sea el último tablero
-    const cantidadTableros = authStore.userProfile?.boards?.length || 0
-    if (cantidadTableros <= 1) {
-      throw new Error('No puedes salir de tu último tablero. Debes tener al menos uno.')
-    }
-
-    // Verificar si el board es default y transferir si es necesario
-    const boardRef = doc(db, 'boards', boardId)
-    const boardSnap = await getDoc(boardRef)
-
-    if (boardSnap.exists() && boardSnap.data().esDefault && cantidadTableros === 2) {
-      // Transferir default al otro board antes de salir
-      const otroBoard = authStore.userProfile!.boards.find(id => id !== boardId)
-      if (otroBoard) {
-        await updateDoc(doc(db, 'boards', otroBoard), { esDefault: true })
-      }
-    }
-
-    await updateDoc(doc(db, 'boards', boardId), { members: arrayRemove(uid) })
-    await updateDoc(doc(db, 'users', uid), { boards: arrayRemove(boardId) })
-    await authStore.cargarPerfilUsuario()
-
-    if (boardActivo.value === boardId) {
-      const otrosBoards = authStore.userProfile?.boards || []
-      const primerBoard = otrosBoards[0]
-      if (primerBoard) {
-        await seleccionarBoard(primerBoard)
-      } else {
-        limpiarDatos()
-      }
-    }
-  }
-
-  const eliminarBoard = async (boardId: string) => {
-    const authStore = useAuthStore()
-    const uid = authStore.user?.uid
-    if (!uid) throw new Error('Usuario no autenticado')
-
-    // Validar que no sea el último tablero
-    const cantidadTableros = authStore.userProfile?.boards?.length || 0
-    if (cantidadTableros <= 1) {
-      throw new Error('No puedes eliminar tu último tablero. Debes tener al menos uno.')
-    }
-
-    const boardRef = doc(db, 'boards', boardId)
-    const boardSnap = await getDoc(boardRef)
-
-    if (!boardSnap.exists()) {
-      throw new Error('El tablero no existe')
-    }
-
-    const boardData = boardSnap.data()
-
-    if (boardData.owner !== uid) {
-      throw new Error('Solo el creador puede eliminar el tablero')
-    }
-
-    const gastosRef = collection(db, `boards/${boardId}/gastos`)
-    const gastosSnap = await getDocs(gastosRef)
-
-    const batch = writeBatch(db)
-
-    gastosSnap.docs.forEach((doc) => {
-      batch.delete(doc.ref)
-    })
-
-    const configGeneralRef = doc(db, `boards/${boardId}/config/general`)
-    const configPresupuestosRef = doc(db, `boards/${boardId}/config/presupuestos`)
-
-    batch.delete(configGeneralRef)
-    batch.delete(configPresupuestosRef)
-    batch.delete(boardRef)
-
-    // Si el board a eliminar es default y hay 2 boards, poner el otro como default
-    if (boardData.esDefault && authStore.userProfile!.boards.length === 2) {
-      const otroBoard = authStore.userProfile!.boards.find(id => id !== boardId)
-      if (otroBoard) {
-        batch.update(doc(db, 'boards', otroBoard), { esDefault: true })
-      }
-    }
-
-    await batch.commit()
-
-    for (const memberId of boardData.members || []) {
-      try {
-        await updateDoc(doc(db, 'users', memberId), { boards: arrayRemove(boardId) })
-      } catch (e) {
-        console.warn(`No se pudo actualizar usuario ${memberId}`)
-      }
-    }
-
-    await authStore.cargarPerfilUsuario()
-
-    if (boardActivo.value === boardId) {
-      const otrosBoards = authStore.userProfile?.boards || []
-      const primerBoard = otrosBoards[0]
-      if (primerBoard) {
-        await seleccionarBoard(primerBoard)
-      } else {
-        limpiarDatos()
-      }
-    }
-  }
 
   // ===========================================
   // NAVEGACIÓN Y UTILIDADES
@@ -736,13 +300,11 @@ export const useGastosStore = defineStore('gastos', () => {
     const f = new Date(fechaVisual.value)
     f.setMonth(f.getMonth() + delta)
     fechaVisual.value = f
-    // Recargar presupuestos del nuevo mes
     subscribirseAPresupuestos()
   }
 
   const irAMes = (fecha: Date) => {
     fechaVisual.value = new Date(fecha)
-    // Recargar presupuestos del nuevo mes
     subscribirseAPresupuestos()
   }
 
@@ -789,23 +351,6 @@ export const useGastosStore = defineStore('gastos', () => {
         agrupados[gasto.categoria] = { total: 0, items: [] }
       }
       const grupo = agrupados[gasto.categoria]
-      if (grupo) {
-        grupo.total += gasto.monto
-        grupo.items.push(gasto)
-      }
-    })
-
-    return agrupados
-  })
-
-  const gastosPorUsuario = computed(() => {
-    const agrupados: Record<string, { total: number; items: Gasto[] }> = {}
-
-    gastosDelMes.value.forEach((gasto) => {
-      if (!agrupados[gasto.pagadoPor]) {
-        agrupados[gasto.pagadoPor] = { total: 0, items: [] }
-      }
-      const grupo = agrupados[gasto.pagadoPor]
       if (grupo) {
         grupo.total += gasto.monto
         grupo.items.push(gasto)
@@ -867,26 +412,6 @@ export const useGastosStore = defineStore('gastos', () => {
     return categoria
   })
 
-  const metodoPagoMasUsado = computed(() => {
-    const conteo: Record<string, number> = {}
-
-    gastosDelMes.value.forEach((g) => {
-      conteo[g.metodoPago] = (conteo[g.metodoPago] || 0) + 1
-    })
-
-    let max = 0
-    let metodo = ''
-
-    Object.entries(conteo).forEach(([m, count]) => {
-      if (count > max) {
-        max = count
-        metodo = m
-      }
-    })
-
-    return metodo
-  })
-
   // ===========================================
   // RETURN
   // ===========================================
@@ -896,18 +421,13 @@ export const useGastosStore = defineStore('gastos', () => {
     gastos,
     presupuestos,
     categorias,
-    usuarios,
-    metodosPago,
     cargando,
     fechaVisual,
     borradorGasto,
-    boardActivo,
-    infoBoard,
 
     // Inicialización
     inicializar,
     limpiarDatos,
-    seleccionarBoard,
 
     // Categorías
     agregarCategoria,
@@ -915,10 +435,6 @@ export const useGastosStore = defineStore('gastos', () => {
     borrarCategoria,
     categoriasGasto,
     categoriasIngreso,
-
-    // Métodos de Pago
-    agregarMetodo,
-    borrarMetodo,
 
     // Presupuestos
     actualizarPresupuesto,
@@ -931,14 +447,6 @@ export const useGastosStore = defineStore('gastos', () => {
     editarGasto,
     borrarGasto,
     getGasto,
-
-    // Tableros
-    unirseABoard,
-    crearNuevoBoard,
-    editarBoard,
-    setDefaultBoard,
-    salirDeBoard,
-    eliminarBoard,
 
     // Navegación
     cambiarMes,
@@ -954,9 +462,7 @@ export const useGastosStore = defineStore('gastos', () => {
     totalIngresosDelMes,
     balanceDelMes,
     gastosPorCategoria,
-    gastosPorUsuario,
     estadoPresupuesto,
     categoriaMasUsada,
-    metodoPagoMasUsado,
   }
 })
