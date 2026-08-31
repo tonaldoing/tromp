@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, RouterLink } from 'vue-router'
 import { useGastosStore } from '../stores/gastos'
 import { storeToRefs } from 'pinia'
 import { getIcono } from '../utils/icons'
@@ -461,13 +461,16 @@ const guardar = async () => {
         <span>{{ guardando ? 'Guardando...' : textos.boton }}</span>
       </button>
 
-      <p
-        v-if="monto && !descripcion"
-        class="text-center text-xs text-gray-400 font-medium -mt-2 mb-6"
-      >
+      <p v-if="monto && !descripcion" class="text-center text-xs text-gray-400 font-medium -mt-2">
         Agregá una descripción para poder guardar
       </p>
-      <div v-else class="mb-6"></div>
+
+      <RouterLink
+        to="/import"
+        class="block text-center text-xs font-bold text-gray-400 hover:text-blue-600 transition-colors pb-6"
+      >
+        ¿Muchos gastos? Importalos todos juntos →
+      </RouterLink>
     </div>
   </div>
 </template>

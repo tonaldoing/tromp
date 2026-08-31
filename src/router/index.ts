@@ -5,6 +5,7 @@ import StatsView from '../views/StatsView.vue'
 import EditView from '../views/EditView.vue'
 import BudgetView from '../views/BudgetView.vue'
 import CategoriesView from '../views/CategoriesView.vue'
+import ImportView from '../views/ImportView.vue'
 import LoginView from '../views/LoginView.vue'
 
 import { useAuthStore } from '../stores/auth'
@@ -19,6 +20,7 @@ const router = createRouter({
     { path: '/edit/:id', name: 'edit', component: EditView },
     { path: '/budget', name: 'budget', component: BudgetView },
     { path: '/categories', name: 'categories', component: CategoriesView },
+    { path: '/import', name: 'import', component: ImportView },
   ],
 })
 
