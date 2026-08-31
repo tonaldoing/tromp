@@ -5,7 +5,16 @@ import { useGastosStore } from '../stores/gastos'
 import { storeToRefs } from 'pinia'
 import { getIcono } from '../utils/icons'
 import MonthSelector from '../components/MonthSelector.vue'
-import { ArrowLeft, Calculator, ChevronRight, Save, Loader2, Copy, AlertCircle, CheckCircle2 } from 'lucide-vue-next'
+import {
+  ArrowLeft,
+  Calculator,
+  ChevronRight,
+  Save,
+  Loader2,
+  Copy,
+  AlertCircle,
+  CheckCircle2,
+} from 'lucide-vue-next'
 
 const store = useGastosStore()
 const router = useRouter()
@@ -48,13 +57,25 @@ const totalMensual = computed(() => {
 
 const hayDiferencias = computed(() => {
   return Object.keys(valoresLocales.value).some(
-    cat => valoresLocales.value[cat] !== (presupuestos.value[cat] || 0)
+    (cat) => valoresLocales.value[cat] !== (presupuestos.value[cat] || 0),
   )
 })
 
 const mesActual = computed(() => {
-  const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-                 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+  const meses = [
+    'Enero',
+    'Febrero',
+    'Marzo',
+    'Abril',
+    'Mayo',
+    'Junio',
+    'Julio',
+    'Agosto',
+    'Septiembre',
+    'Octubre',
+    'Noviembre',
+    'Diciembre',
+  ]
   return `${meses[fechaVisual.value.getMonth()]} ${fechaVisual.value.getFullYear()}`
 })
 
@@ -62,13 +83,18 @@ const copiarMesAnterior = async () => {
   if (confirm('¿Copiar los presupuestos del mes anterior?')) {
     copiando.value = true
     try {
-      await store.copiarPresupuestoMesAnterior()
-      exito.value = true
-      setTimeout(() => {
-        exito.value = false
-      }, 2000)
+      const copiado = await store.copiarPresupuestoMesAnterior()
+      if (copiado) {
+        exito.value = true
+        setTimeout(() => {
+          exito.value = false
+        }, 2000)
+      } else {
+        alert('No hay presupuestos del mes anterior para copiar')
+      }
     } catch (error) {
-      alert('No hay presupuestos del mes anterior para copiar')
+      console.error('Error copiando presupuesto:', error)
+      alert('No se pudo copiar el presupuesto. Intentá de nuevo.')
     } finally {
       copiando.value = false
     }
@@ -79,16 +105,17 @@ const guardarTodo = async () => {
   guardando.value = true
   exito.value = false
 
-  for (const cat of categoriasGasto.value) {
-    const valor = valoresLocales.value[cat.nombre]
-    if (valor !== undefined) {
-      await store.actualizarPresupuesto(cat.nombre, valor)
-    }
+  try {
+    // Una sola escritura con todos los topes del mes
+    await store.guardarPresupuestos({ ...valoresLocales.value })
+    exito.value = true
+    setTimeout(() => (exito.value = false), 2000)
+  } catch (error) {
+    console.error('Error guardando presupuesto:', error)
+    alert('No se pudo guardar el presupuesto. Revisá tu conexión e intentá de nuevo.')
+  } finally {
+    guardando.value = false
   }
-
-  guardando.value = false
-  exito.value = true
-  setTimeout(() => (exito.value = false), 2000)
 }
 </script>
 
@@ -103,9 +130,7 @@ const guardarTodo = async () => {
         <ArrowLeft :size="20" />
       </button>
       <div class="flex-1">
-        <h1 class="text-2xl font-extrabold text-gray-900 tracking-tight">
-          Presupuesto Mensual
-        </h1>
+        <h1 class="text-2xl font-extrabold text-gray-900 tracking-tight">Presupuesto Mensual</h1>
         <p class="text-sm text-gray-500 font-medium">
           Define cuánto quieres gastar por categoría cada mes
         </p>
@@ -116,23 +141,25 @@ const guardarTodo = async () => {
     <MonthSelector />
 
     <!-- Estado del Presupuesto -->
-    <div v-if="presupuestoConfigurado" class="bg-green-50 border-2 border-green-200 rounded-2xl p-4 mb-6 flex items-center gap-3">
+    <div
+      v-if="presupuestoConfigurado"
+      class="bg-green-50 border-2 border-green-200 rounded-2xl p-4 mb-6 flex items-center gap-3"
+    >
       <CheckCircle2 :size="20" class="text-green-600 shrink-0" />
       <div class="flex-1 min-w-0">
         <p class="text-sm font-bold text-green-800">Presupuesto configurado</p>
-        <p class="text-xs text-green-600">
-          Has establecido tus topes para {{ mesActual }}
-        </p>
+        <p class="text-xs text-green-600">Has establecido tus topes para {{ mesActual }}</p>
       </div>
     </div>
 
-    <div v-else class="bg-amber-50 border-2 border-amber-200 rounded-2xl p-4 mb-6 flex items-center gap-3">
+    <div
+      v-else
+      class="bg-amber-50 border-2 border-amber-200 rounded-2xl p-4 mb-6 flex items-center gap-3"
+    >
       <AlertCircle :size="20" class="text-amber-600 shrink-0" />
       <div class="flex-1 min-w-0">
         <p class="text-sm font-bold text-amber-800">Sin presupuesto</p>
-        <p class="text-xs text-amber-600">
-          Aún no has configurado topes para {{ mesActual }}
-        </p>
+        <p class="text-xs text-amber-600">Aún no has configurado topes para {{ mesActual }}</p>
       </div>
     </div>
 
@@ -163,9 +190,7 @@ const guardarTodo = async () => {
         <p class="text-3xl font-black tracking-tighter">
           $ {{ new Intl.NumberFormat('es-AR').format(totalMensual) }}
         </p>
-        <p class="text-xs opacity-75 mt-2">
-          Suma de todos los topes que configuraste
-        </p>
+        <p class="text-xs opacity-75 mt-2">Suma de todos los topes que configuraste</p>
       </div>
     </div>
 
@@ -221,7 +246,7 @@ const guardarTodo = async () => {
             ? 'bg-green-500 text-white'
             : guardando
               ? 'bg-gray-300 text-gray-500'
-              : (!hayDiferencias && presupuestoConfigurado)
+              : !hayDiferencias && presupuestoConfigurado
                 ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                 : 'bg-black text-white hover:bg-gray-800'
         "
@@ -231,8 +256,13 @@ const guardarTodo = async () => {
         <CheckCircle2 v-else :size="20" />
 
         <span>{{
-          exito ? '¡Guardado con éxito!' : guardando ? 'Guardando...' :
-          (!hayDiferencias && presupuestoConfigurado) ? 'Sin cambios' : 'Guardar Presupuesto'
+          exito
+            ? '¡Guardado con éxito!'
+            : guardando
+              ? 'Guardando...'
+              : !hayDiferencias && presupuestoConfigurado
+                ? 'Sin cambios'
+                : 'Guardar Presupuesto'
         }}</span>
       </button>
     </div>

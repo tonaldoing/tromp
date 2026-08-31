@@ -13,6 +13,7 @@ import {
   deleteDoc,
   deleteField,
   getDoc,
+  type Unsubscribe,
 } from 'firebase/firestore'
 
 // --- INTERFACES ---
@@ -34,6 +35,16 @@ export interface Gasto {
   totalCuotas?: number
 }
 
+// Borrador del formulario de AddView, para no perder lo tipeado
+// al navegar a otra pantalla (ej: crear una categoría en el medio)
+export interface BorradorMovimiento {
+  tipo: 'gasto' | 'ingreso'
+  monto: string
+  descripcion: string
+  categoria: string
+  cuotas: number
+}
+
 export const useGastosStore = defineStore('gastos', () => {
   // --- ESTADO ---
   const gastos = ref<Gasto[]>([])
@@ -42,9 +53,9 @@ export const useGastosStore = defineStore('gastos', () => {
 
   const fechaVisual = ref(new Date())
   const cargando = ref(false)
-  const borradorGasto = ref<any>(null)
+  const borradorGasto = ref<BorradorMovimiento | null>(null)
 
-  let unsubscribes: Function[] = []
+  let unsubscribes: Unsubscribe[] = []
 
   // --- HELPERS ---
   const getUid = () => {
@@ -54,6 +65,10 @@ export const useGastosStore = defineStore('gastos', () => {
   }
 
   const getConfigRef = () => doc(db, `users/${getUid()}/config/general`)
+
+  // Clave de documento de presupuestos para un mes dado ("2026-08")
+  const mesKeyDe = (fecha: Date) =>
+    `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`
 
   // Suma meses a una fecha sin que el día desborde al mes siguiente
   // (ej: 31 de enero + 1 mes = 28/29 de febrero, no 3 de marzo)
@@ -84,30 +99,43 @@ export const useGastosStore = defineStore('gastos', () => {
     const gastosRef = collection(db, `users/${uid}/gastos`)
     const q = query(gastosRef, orderBy('fecha', 'desc'))
     unsubscribes.push(
-      onSnapshot(q, (snap) => {
-        gastos.value = snap.docs.map((d) => ({
-          id: d.id,
-          ...d.data(),
-          fecha: d.data().fecha.toDate(),
-        })) as Gasto[]
-        cargando.value = false
-      }),
+      onSnapshot(
+        q,
+        (snap) => {
+          gastos.value = snap.docs.map((d) => ({
+            id: d.id,
+            ...d.data(),
+            fecha: d.data().fecha.toDate(),
+          })) as Gasto[]
+          cargando.value = false
+        },
+        (error) => {
+          console.error('Error escuchando gastos:', error)
+          cargando.value = false
+        },
+      ),
     )
 
     // B. Configuración (categorías)
     const configRef = doc(db, `users/${uid}/config/general`)
     unsubscribes.push(
-      onSnapshot(configRef, (snap) => {
-        if (snap.exists()) {
-          const d = snap.data()
-          categorias.value = (d.categorias || [])
-            .filter((c: any) => c && c.nombre && c.id && c.icono)
-            .map((c: any) => ({
-              ...c,
-              tipo: c.tipo || 'gasto',
-            }))
-        }
-      }),
+      onSnapshot(
+        configRef,
+        (snap) => {
+          if (snap.exists()) {
+            const d = snap.data()
+            categorias.value = ((d.categorias || []) as Partial<Categoria>[])
+              .filter((c): c is Categoria => !!(c && c.nombre && c.id && c.icono))
+              .map((c) => ({
+                ...c,
+                tipo: c.tipo || 'gasto',
+              }))
+          }
+        },
+        (error) => {
+          console.error('Error escuchando configuración:', error)
+        },
+      ),
     )
 
     // C. Presupuestos del mes actual
@@ -115,29 +143,33 @@ export const useGastosStore = defineStore('gastos', () => {
   }
 
   // --- PRESUPUESTOS SUBSCRIPTION ---
-  let presupuestosUnsub: Function | null = null
+  let presupuestosUnsub: Unsubscribe | null = null
 
   const subscribirseAPresupuestos = () => {
     const uid = auth.currentUser?.uid
     if (!uid) return
 
+    // Cancelar y descartar la suscripción del mes anterior
     if (presupuestosUnsub) {
       presupuestosUnsub()
+      unsubscribes = unsubscribes.filter((u) => u !== presupuestosUnsub)
     }
 
-    const year = fechaVisual.value.getFullYear()
-    const month = fechaVisual.value.getMonth()
-    const mesKey = `${year}-${String(month + 1).padStart(2, '0')}`
+    const presuRef = doc(db, `users/${uid}/presupuestos/${mesKeyDe(fechaVisual.value)}`)
 
-    const presuRef = doc(db, `users/${uid}/presupuestos/${mesKey}`)
-
-    presupuestosUnsub = onSnapshot(presuRef, (snap) => {
-      if (snap.exists()) {
-        presupuestos.value = snap.data() as Record<string, number>
-      } else {
-        presupuestos.value = {}
-      }
-    })
+    presupuestosUnsub = onSnapshot(
+      presuRef,
+      (snap) => {
+        if (snap.exists()) {
+          presupuestos.value = snap.data() as Record<string, number>
+        } else {
+          presupuestos.value = {}
+        }
+      },
+      (error) => {
+        console.error('Error escuchando presupuestos:', error)
+      },
+    )
 
     unsubscribes.push(presupuestosUnsub)
   }
@@ -188,52 +220,35 @@ export const useGastosStore = defineStore('gastos', () => {
   // PRESUPUESTOS
   // ===========================================
 
-  const actualizarPresupuesto = async (categoria: string, monto: number, anio?: number, mes?: number) => {
-    const uid = getUid()
-    const year = anio ?? fechaVisual.value.getFullYear()
-    const month = mes ?? fechaVisual.value.getMonth()
-    const mesKey = `${year}-${String(month + 1).padStart(2, '0')}`
+  const getPresupuestosRef = (fecha: Date) =>
+    doc(db, `users/${getUid()}/presupuestos/${mesKeyDe(fecha)}`)
 
-    await setDoc(
-      doc(db, `users/${uid}/presupuestos/${mesKey}`),
-      { [categoria]: monto },
-      { merge: true },
-    )
+  const actualizarPresupuesto = async (categoria: string, monto: number) => {
+    await setDoc(getPresupuestosRef(fechaVisual.value), { [categoria]: monto }, { merge: true })
   }
 
-  const borrarPresupuesto = async (categoria: string, anio?: number, mes?: number) => {
-    const uid = getUid()
-    const year = anio ?? fechaVisual.value.getFullYear()
-    const month = mes ?? fechaVisual.value.getMonth()
-    const mesKey = `${year}-${String(month + 1).padStart(2, '0')}`
-
+  const borrarPresupuesto = async (categoria: string) => {
     await setDoc(
-      doc(db, `users/${uid}/presupuestos/${mesKey}`),
+      getPresupuestosRef(fechaVisual.value),
       { [categoria]: deleteField() },
       { merge: true },
     )
   }
 
-  const copiarPresupuestoMesAnterior = async () => {
-    const uid = getUid()
+  // Guarda todos los topes del mes visible en una sola escritura
+  const guardarPresupuestos = async (valores: Record<string, number>) => {
+    await setDoc(getPresupuestosRef(fechaVisual.value), valores, { merge: true })
+  }
 
-    const yearActual = fechaVisual.value.getFullYear()
-    const monthActual = fechaVisual.value.getMonth()
-
+  // Devuelve false si el mes anterior no tenía presupuestos para copiar
+  const copiarPresupuestoMesAnterior = async (): Promise<boolean> => {
     const fechaAnterior = sumarMeses(fechaVisual.value, -1)
-    const yearAnterior = fechaAnterior.getFullYear()
-    const monthAnterior = fechaAnterior.getMonth()
+    const presuAnteriorSnap = await getDoc(getPresupuestosRef(fechaAnterior))
 
-    const mesKeyAnterior = `${yearAnterior}-${String(monthAnterior + 1).padStart(2, '0')}`
-    const mesKeyActual = `${yearActual}-${String(monthActual + 1).padStart(2, '0')}`
+    if (!presuAnteriorSnap.exists()) return false
 
-    const presuAnteriorRef = doc(db, `users/${uid}/presupuestos/${mesKeyAnterior}`)
-    const presuAnteriorSnap = await getDoc(presuAnteriorRef)
-
-    if (presuAnteriorSnap.exists()) {
-      const presuAnterior = presuAnteriorSnap.data()
-      await setDoc(doc(db, `users/${uid}/presupuestos/${mesKeyActual}`), presuAnterior)
-    }
+    await setDoc(getPresupuestosRef(fechaVisual.value), presuAnteriorSnap.data())
+    return true
   }
 
   // ===========================================
@@ -290,9 +305,10 @@ export const useGastosStore = defineStore('gastos', () => {
 
   const editarGasto = async (id: string, data: Partial<Gasto>) => {
     const uid = getUid()
-    const dataToSave = { ...data }
-    if (data.fecha instanceof Date) {
-      ;(dataToSave as any).fecha = Timestamp.fromDate(data.fecha)
+    const { fecha, ...resto } = data
+    const dataToSave: Record<string, unknown> = { ...resto }
+    if (fecha instanceof Date) {
+      dataToSave.fecha = Timestamp.fromDate(fecha)
     }
     await setDoc(doc(db, `users/${uid}/gastos`, id), dataToSave, { merge: true })
   }
@@ -318,7 +334,7 @@ export const useGastosStore = defineStore('gastos', () => {
     subscribirseAPresupuestos()
   }
 
-  const guardarBorrador = (data: any) => {
+  const guardarBorrador = (data: BorradorMovimiento) => {
     borradorGasto.value = data
   }
 
@@ -449,6 +465,7 @@ export const useGastosStore = defineStore('gastos', () => {
     // Presupuestos
     actualizarPresupuesto,
     borrarPresupuesto,
+    guardarPresupuestos,
     copiarPresupuestoMesAnterior,
     presupuestoConfigurado,
 

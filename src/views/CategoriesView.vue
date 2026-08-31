@@ -112,17 +112,22 @@ const guardar = async () => {
       exito.value = false
       guardando.value = false
     }, 1500)
-  } catch (e: any) {
+  } catch (e) {
     console.error(e)
-    alert(e.message || 'Error al guardar')
+    alert(e instanceof Error ? e.message : 'Error al guardar')
     guardando.value = false
   }
 }
 
 const borrar = async (cat: Categoria) => {
   if (confirm(`¿Borrar categoría "${cat.nombre}"?`)) {
-    await store.borrarCategoria(cat)
-    if (idEditando.value === cat.id) limpiarForm()
+    try {
+      await store.borrarCategoria(cat)
+      if (idEditando.value === cat.id) limpiarForm()
+    } catch (e) {
+      console.error(e)
+      alert('No se pudo borrar la categoría. Intentá de nuevo.')
+    }
   }
 }
 

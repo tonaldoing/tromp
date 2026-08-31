@@ -3,6 +3,7 @@ import { useAuthStore } from '../stores/auth'
 import { useRouter } from 'vue-router'
 import { watchEffect, ref } from 'vue'
 import { Loader2 } from 'lucide-vue-next'
+import { FirebaseError } from 'firebase/app'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -24,15 +25,16 @@ const handleLogin = async () => {
   try {
     await authStore.login()
     // Si el login fue exitoso, watchEffect redirigirá automáticamente
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error en login:', error)
 
     // Mostrar mensaje de error amigable
-    if (error.code === 'auth/popup-closed-by-user') {
+    const code = error instanceof FirebaseError ? error.code : ''
+    if (code === 'auth/popup-closed-by-user') {
       errorLogin.value = 'Cerraste la ventana de login. Intenta nuevamente.'
-    } else if (error.code === 'auth/network-request-failed') {
+    } else if (code === 'auth/network-request-failed') {
       errorLogin.value = 'Error de conexión. Verifica tu internet.'
-    } else if (error.code === 'auth/unauthorized-domain') {
+    } else if (code === 'auth/unauthorized-domain') {
       errorLogin.value = 'Dominio no autorizado. Contacta al administrador.'
     } else {
       errorLogin.value = 'Error al iniciar sesión. Intenta nuevamente.'
@@ -55,15 +57,8 @@ const handleLogin = async () => {
       :disabled="cargandoLogin"
       class="bg-white text-gray-900 px-8 py-4 rounded-2xl font-bold text-lg flex items-center gap-4 shadow-2xl hover:bg-gray-100 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white"
     >
-      <Loader2
-        v-if="cargandoLogin"
-        class="w-6 h-6 animate-spin"
-      />
-      <img
-        v-else
-        src="https://www.svgrepo.com/show/475656/google-color.svg"
-        class="w-6 h-6"
-      />
+      <Loader2 v-if="cargandoLogin" class="w-6 h-6 animate-spin" />
+      <img v-else src="https://www.svgrepo.com/show/475656/google-color.svg" class="w-6 h-6" />
       <span>{{ cargandoLogin ? 'Iniciando sesión...' : 'Entrar con Google' }}</span>
     </button>
 

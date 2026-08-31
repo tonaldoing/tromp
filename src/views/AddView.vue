@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useGastosStore } from '../stores/gastos'
 import { storeToRefs } from 'pinia'
 import { getIcono } from '../utils/icons'
+import { formatearMontoInput, limpiarMontoInput } from '../utils/formato'
 import {
   ArrowLeft,
   ArrowDownLeft,
@@ -81,38 +82,11 @@ const colores = computed(() => {
   }
 })
 
-const formatearMontoInput = (valor: string): string => {
-  if (!valor) return ''
-
-  const partes = valor.split('.')
-  const parteEntera = partes[0]?.replace(/\D/g, '') || ''
-  const parteDecimal = partes[1] ? partes[1].replace(/\D/g, '').slice(0, 2) : ''
-
-  if (!parteEntera) return ''
-
-  const numeroFormateado = new Intl.NumberFormat('es-AR').format(Number(parteEntera))
-
-  if (parteDecimal) {
-    return `${numeroFormateado},${parteDecimal}`
-  }
-
-  if (valor.endsWith('.') || valor.endsWith(',')) {
-    return `${numeroFormateado},`
-  }
-
-  return numeroFormateado
-}
-
 const onInputMonto = (event: Event) => {
   const input = event.target as HTMLInputElement
-  let value = input.value
+  const cleaned = limpiarMontoInput(input.value)
 
-  value = value.replace(/\./g, '').replace(',', '.')
-
-  const cleaned = value.replace(/[^\d.]/g, '')
-
-  const regex = /^\d*\.?\d{0,2}$/
-  if (!regex.test(cleaned)) {
+  if (cleaned === null) {
     input.value = formatearMontoInput(monto.value)
     return
   }
@@ -223,17 +197,22 @@ const guardar = async () => {
 
   guardando.value = true
 
-  await store.agregarMovimiento(
-    Number(monto.value),
-    descripcion.value,
-    catFinal,
-    tipo.value,
-    esIngreso.value ? 1 : cuotas.value,
-    fechaPersonalizada.value || undefined,
-  )
-
-  guardando.value = false
-  router.push('/')
+  try {
+    await store.agregarMovimiento(
+      Number(monto.value),
+      descripcion.value,
+      catFinal,
+      tipo.value,
+      esIngreso.value ? 1 : cuotas.value,
+      fechaPersonalizada.value || undefined,
+    )
+    router.push('/')
+  } catch (error) {
+    console.error('Error guardando movimiento:', error)
+    alert('No se pudo guardar el movimiento. Revisá tu conexión e intentá de nuevo.')
+  } finally {
+    guardando.value = false
+  }
 }
 </script>
 
@@ -419,10 +398,7 @@ const guardar = async () => {
       </div>
 
       <!-- Cuotas (solo gastos) -->
-      <div
-        v-if="!esIngreso"
-        class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm"
-      >
+      <div v-if="!esIngreso" class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
         <label
           class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-2 flex items-center gap-1"
         >
@@ -472,18 +448,26 @@ const guardar = async () => {
       <!-- Botón Guardar -->
       <button
         @click="guardar"
-        :disabled="guardando || !monto"
-        class="w-full py-4 rounded-2xl text-xl font-bold shadow-xl active:scale-95 transition-all text-white flex items-center justify-center gap-3 mb-6"
+        :disabled="guardando || !monto || !descripcion"
+        class="w-full py-4 rounded-2xl text-xl font-bold shadow-xl active:scale-95 transition-all text-white flex items-center justify-center gap-3"
         :class="[
           colores.accent,
           colores.accentHover,
           colores.shadow,
-          !monto || guardando ? 'opacity-50 cursor-not-allowed' : '',
+          !monto || !descripcion || guardando ? 'opacity-50 cursor-not-allowed' : '',
         ]"
       >
         <component :is="esIngreso ? ArrowDownLeft : ArrowUpRight" :size="22" />
         <span>{{ guardando ? 'Guardando...' : textos.boton }}</span>
       </button>
+
+      <p
+        v-if="monto && !descripcion"
+        class="text-center text-xs text-gray-400 font-medium -mt-2 mb-6"
+      >
+        Agregá una descripción para poder guardar
+      </p>
+      <div v-else class="mb-6"></div>
     </div>
   </div>
 </template>

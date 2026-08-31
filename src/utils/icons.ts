@@ -42,13 +42,17 @@ import {
   PlusCircle,
 } from 'lucide-vue-next'
 
+import type { Component } from 'vue'
+
 // Mapa: Nombre (String) -> Componente
-export const ICONOS_DISPONIBLES: Record<string, any> = {
+export const ICONOS_DISPONIBLES: Record<string, Component> = {
   // Personas
   user: User,
   'user-check': UserCheck,
+  'user-plus': UserPlus,
   smile: Smile,
   meh: Meh,
+  frown: Frown,
   ghost: Ghost,
   skull: Skull,
   baby: Baby,
@@ -75,6 +79,8 @@ export const ICONOS_DISPONIBLES: Record<string, any> = {
   briefcase: Briefcase,
   travel: Plane,
   health: Stethoscope,
+  tools: Hammer,
+  education: GraduationCap,
   laptop: Laptop,
   tag: Tag,
   'plus-circle': PlusCircle,

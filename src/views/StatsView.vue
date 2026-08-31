@@ -4,7 +4,8 @@ import { useRouter } from 'vue-router'
 import { useGastosStore } from '../stores/gastos'
 import { storeToRefs } from 'pinia'
 import MonthSelector from '../components/MonthSelector.vue'
-import { getIcono } from '../utils/icons' // Importamos tu helper de iconos
+import { getIcono } from '../utils/icons'
+import { formatearDinero } from '../utils/formato'
 
 // Iconos Lucide
 import {
@@ -25,15 +26,6 @@ const { gastosDelMes, ingresosDelMes, categorias } = storeToRefs(store)
 const iconoDeCategoria = (nombre: string) => {
   const cat = categorias.value.find((c) => c.nombre === nombre)
   return getIcono(cat?.icono || 'star')
-}
-
-// --- FORMATO DINERO (Igual que en Home) ---
-const formatearDinero = (monto: number) => {
-  return new Intl.NumberFormat('es-AR', {
-    style: 'decimal',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(monto)
 }
 
 // --- CALCULOS GENERALES ---

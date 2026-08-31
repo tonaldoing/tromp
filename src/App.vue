@@ -13,10 +13,12 @@ onMounted(async () => {
   await authStore.inicializarAuth()
 })
 
+// Observamos el uid (no el objeto perfil): cada snapshot del perfil crea un
+// objeto nuevo y re-suscribiría todos los listeners de Firestore sin necesidad
 watch(
-  () => authStore.userProfile,
-  async (perfil) => {
-    if (perfil) {
+  () => authStore.userProfile?.uid,
+  async (uid) => {
+    if (uid) {
       await gastosStore.inicializar()
     }
   },
