@@ -9,7 +9,8 @@ import {
   onAuthStateChanged,
   type User,
 } from 'firebase/auth'
-import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore'
+import { doc, getDoc, setDoc, onSnapshot, type Unsubscribe } from 'firebase/firestore'
+import { FirebaseError } from 'firebase/app'
 import { useRouter } from 'vue-router'
 import { useGastosStore } from './gastos'
 
@@ -26,7 +27,7 @@ export const useAuthStore = defineStore('auth', () => {
   const cargandoAuth = ref(true)
   const router = useRouter()
 
-  let unsubscribeProfile: Function | null = null
+  let unsubscribeProfile: Unsubscribe | null = null
 
   const escucharPerfil = (uid: string) => {
     if (unsubscribeProfile) {
@@ -84,11 +85,12 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const result = await signInWithPopup(auth, googleProvider)
       return result.user
-    } catch (error: any) {
+    } catch (error) {
       const isPopupBlocked =
-        error.code === 'auth/popup-blocked' ||
-        error.code === 'auth/cancelled-popup-request' ||
-        error.message?.includes('popup')
+        error instanceof FirebaseError &&
+        (error.code === 'auth/popup-blocked' ||
+          error.code === 'auth/cancelled-popup-request' ||
+          error.message.includes('popup'))
 
       if (isPopupBlocked) {
         await signInWithRedirect(auth, googleProvider)
@@ -125,8 +127,14 @@ export const useAuthStore = defineStore('auth', () => {
     router.push('/login')
   }
 
+  // Promesa compartida: App.vue y el guard del router pueden llamar a
+  // inicializarAuth a la vez, pero el listener se registra una sola vez
+  let promesaAuth: Promise<User | null> | null = null
+
   const inicializarAuth = (): Promise<User | null> => {
-    return new Promise(async (resolve) => {
+    if (promesaAuth) return promesaAuth
+
+    promesaAuth = new Promise(async (resolve) => {
       try {
         await manejarRedirectResult()
       } catch (error) {
@@ -146,6 +154,8 @@ export const useAuthStore = defineStore('auth', () => {
         resolve(currentUser)
       })
     })
+
+    return promesaAuth
   }
 
   return {

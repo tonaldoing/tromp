@@ -1,18 +1,13 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import { useGastosStore } from '../stores/gastos'
 import { useAuthStore } from '../stores/auth'
 import { storeToRefs } from 'pinia'
 import MonthSelector from '../components/MonthSelector.vue'
 import { getIcono } from '../utils/icons'
+import { formatearDinero } from '../utils/formato'
 
-import {
-  ArrowUpRight,
-  ArrowDownLeft,
-  Inbox,
-  LogOut,
-} from 'lucide-vue-next'
+import { ArrowUpRight, ArrowDownLeft, Inbox, LogOut } from 'lucide-vue-next'
 
 const store = useGastosStore()
 const authStore = useAuthStore()
@@ -36,14 +31,6 @@ const formatearFecha = (fecha: Date) => {
     hour: '2-digit',
     minute: '2-digit',
   }).format(fecha)
-}
-
-const formatearDinero = (monto: number) => {
-  return new Intl.NumberFormat('es-AR', {
-    style: 'decimal',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(monto)
 }
 
 const irAEditar = (id: string) => {
@@ -95,9 +82,7 @@ const irAEditar = (id: string) => {
 
       <div class="grid grid-cols-2 gap-4">
         <!-- Ingresos -->
-        <div
-          class="bg-green-50/50 rounded-2xl p-3 flex flex-col border border-green-100/50"
-        >
+        <div class="bg-green-50/50 rounded-2xl p-3 flex flex-col border border-green-100/50">
           <div class="flex items-center gap-2 mb-1">
             <div
               class="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center text-green-600"
@@ -112,9 +97,7 @@ const irAEditar = (id: string) => {
         </div>
 
         <!-- Gastos -->
-        <div
-          class="bg-red-50/50 rounded-2xl p-3 flex flex-col border border-red-100/50"
-        >
+        <div class="bg-red-50/50 rounded-2xl p-3 flex flex-col border border-red-100/50">
           <div class="flex items-center gap-2 mb-1">
             <div
               class="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center text-red-600"
@@ -144,18 +127,27 @@ const irAEditar = (id: string) => {
 
       <div class="space-y-3">
         <div
-          v-for="cat in categoriasGasto.filter(c => (estadoPresupuesto[c.nombre]?.total || 0) > 0)"
+          v-for="cat in categoriasGasto.filter(
+            (c) => (estadoPresupuesto[c.nombre]?.total || 0) > 0,
+          )"
           :key="cat.id"
           class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm"
         >
           <div class="flex items-center justify-between mb-2">
             <div class="flex items-center gap-2">
-              <component :is="getIcono(cat.icono)" :size="16" class="text-gray-600" stroke-width="2.5" />
+              <component
+                :is="getIcono(cat.icono)"
+                :size="16"
+                class="text-gray-600"
+                stroke-width="2.5"
+              />
               <span class="text-sm font-bold text-gray-800">{{ cat.nombre }}</span>
             </div>
             <div class="text-right">
               <p class="text-xs font-bold text-gray-900">
-                ${{ formatearDinero(estadoPresupuesto[cat.nombre]?.gastado || 0) }} / ${{ formatearDinero(estadoPresupuesto[cat.nombre]?.total || 0) }}
+                ${{ formatearDinero(estadoPresupuesto[cat.nombre]?.gastado || 0) }} / ${{
+                  formatearDinero(estadoPresupuesto[cat.nombre]?.total || 0)
+                }}
               </p>
             </div>
           </div>
@@ -170,7 +162,9 @@ const irAEditar = (id: string) => {
                     ? 'bg-amber-500'
                     : 'bg-green-500'
               "
-              :style="{ width: Math.min((estadoPresupuesto[cat.nombre]?.porcentaje || 0), 100) + '%' }"
+              :style="{
+                width: Math.min(estadoPresupuesto[cat.nombre]?.porcentaje || 0, 100) + '%',
+              }"
             ></div>
           </div>
 
@@ -258,9 +252,9 @@ const irAEditar = (id: string) => {
             />
             <component
               v-else
-              :is="getIcono(
-                store.categorias.find(c => c.nombre === mov.categoria)?.icono || 'star'
-              )"
+              :is="
+                getIcono(store.categorias.find((c) => c.nombre === mov.categoria)?.icono || 'star')
+              "
               :size="20"
               stroke-width="2.5"
             />
