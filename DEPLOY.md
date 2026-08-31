@@ -1,6 +1,22 @@
 # 🚀 Guía de Deployment - Trompocostos
 
-## Pasos para Deployar a Firebase Hosting
+## Deploy automático (GitHub Actions)
+
+Cada push/merge a `main` corre el workflow `.github/workflows/deploy.yml`,
+que hace el build y despliega a Firebase Hosting automáticamente.
+
+Requiere (una sola vez) el secret `FIREBASE_SERVICE_ACCOUNT` en GitHub:
+
+1. Crear una service account en Google Cloud:
+   https://console.cloud.google.com/iam-admin/serviceaccounts?project=trompocostos-app
+   → "Create service account" → nombre `github-actions-deploy` → rol **Firebase Hosting Admin**
+2. En la service account creada: pestaña "Keys" → "Add key" → "Create new key" → JSON (descarga un archivo)
+3. En GitHub: Settings → Secrets and variables → Actions → "New repository secret"
+   → Nombre: `FIREBASE_SERVICE_ACCOUNT` → Valor: el contenido completo del JSON descargado
+4. Listo: el próximo merge a `main` despliega solo. También se puede disparar a mano
+   desde la pestaña **Actions** → "Deploy a Firebase Hosting" → "Run workflow".
+
+## Deploy manual - Pasos para Deployar a Firebase Hosting
 
 ### 1. Descarga los Íconos (Si aún no lo hiciste)
 

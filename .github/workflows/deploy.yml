@@ -1,0 +1,36 @@
+# Deploy automático a Firebase Hosting en cada push a main.
+# Requiere el secret FIREBASE_SERVICE_ACCOUNT (JSON de una service account
+# con el rol "Firebase Hosting Admin" del proyecto trompocostos-app).
+name: Deploy a Firebase Hosting
+
+on:
+  push:
+    branches: [main]
+  # Permite dispararlo a mano desde la pestaña Actions
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      # Corre type-check + vite build (script "build" del package.json)
+      - name: Build de producción
+        run: npm run build
+
+      - name: Deploy a Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          channelId: live
+          projectId: trompocostos-app
