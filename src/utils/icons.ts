@@ -36,6 +36,10 @@ import {
   Banknote,
   Wallet,
   QrCode,
+  // Extras (usados por las categorías por defecto)
+  Laptop,
+  Tag,
+  PlusCircle,
 } from 'lucide-vue-next'
 
 // Mapa: Nombre (String) -> Componente
@@ -57,6 +61,7 @@ export const ICONOS_DISPONIBLES: Record<string, any> = {
 
   // Categorías
   shopping: ShoppingCart,
+  'shopping-cart': ShoppingCart,
   home: Home,
   car: Car,
   food: Utensils,
@@ -67,8 +72,12 @@ export const ICONOS_DISPONIBLES: Record<string, any> = {
   wifi: Wifi,
   gift: Gift,
   work: Briefcase,
+  briefcase: Briefcase,
   travel: Plane,
   health: Stethoscope,
+  laptop: Laptop,
+  tag: Tag,
+  'plus-circle': PlusCircle,
 
   // Pagos
   card: CreditCard,

@@ -125,8 +125,14 @@ export const useAuthStore = defineStore('auth', () => {
     router.push('/login')
   }
 
+  // Promesa compartida: App.vue y el guard del router pueden llamar a
+  // inicializarAuth a la vez, pero el listener se registra una sola vez
+  let promesaAuth: Promise<User | null> | null = null
+
   const inicializarAuth = (): Promise<User | null> => {
-    return new Promise(async (resolve) => {
+    if (promesaAuth) return promesaAuth
+
+    promesaAuth = new Promise(async (resolve) => {
       try {
         await manejarRedirectResult()
       } catch (error) {
@@ -146,6 +152,8 @@ export const useAuthStore = defineStore('auth', () => {
         resolve(currentUser)
       })
     })
+
+    return promesaAuth
   }
 
   return {

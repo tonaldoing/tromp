@@ -20,7 +20,12 @@ import {
 const router = useRouter()
 
 const store = useGastosStore()
-const { gastosDelMes, ingresosDelMes } = storeToRefs(store)
+const { gastosDelMes, ingresosDelMes, categorias } = storeToRefs(store)
+
+const iconoDeCategoria = (nombre: string) => {
+  const cat = categorias.value.find((c) => c.nombre === nombre)
+  return getIcono(cat?.icono || 'star')
+}
 
 // --- FORMATO DINERO (Igual que en Home) ---
 const formatearDinero = (monto: number) => {
@@ -180,7 +185,7 @@ const gastosPorCategoria = computed(() => {
               <div
                 class="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center border border-gray-100 text-gray-600"
               >
-                <component :is="getIcono(cat.nombre)" :size="20" stroke-width="2" />
+                <component :is="iconoDeCategoria(cat.nombre)" :size="20" stroke-width="2" />
               </div>
               <div>
                 <p class="font-bold text-gray-800 text-sm">{{ cat.nombre }}</p>

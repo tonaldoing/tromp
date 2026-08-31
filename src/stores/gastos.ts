@@ -11,7 +11,7 @@ import {
   doc,
   setDoc,
   deleteDoc,
-  updateDoc,
+  deleteField,
   getDoc,
 } from 'firebase/firestore'
 
@@ -54,6 +54,18 @@ export const useGastosStore = defineStore('gastos', () => {
   }
 
   const getConfigRef = () => doc(db, `users/${getUid()}/config/general`)
+
+  // Suma meses a una fecha sin que el día desborde al mes siguiente
+  // (ej: 31 de enero + 1 mes = 28/29 de febrero, no 3 de marzo)
+  const sumarMeses = (fecha: Date, delta: number) => {
+    const f = new Date(fecha)
+    const dia = f.getDate()
+    f.setDate(1)
+    f.setMonth(f.getMonth() + delta)
+    const ultimoDia = new Date(f.getFullYear(), f.getMonth() + 1, 0).getDate()
+    f.setDate(Math.min(dia, ultimoDia))
+    return f
+  }
 
   // --- INICIALIZAR ---
   const inicializar = async () => {
@@ -157,19 +169,19 @@ export const useGastosStore = defineStore('gastos', () => {
     }
 
     const listaNueva = [...categorias.value, categoria]
-    await updateDoc(getConfigRef(), { categorias: listaNueva })
+    await setDoc(getConfigRef(), { categorias: listaNueva }, { merge: true })
   }
 
   const editarCategoria = async (categoriaEditada: Categoria) => {
     const listaNueva = categorias.value.map((c) =>
       c.id === categoriaEditada.id ? categoriaEditada : c,
     )
-    await updateDoc(getConfigRef(), { categorias: listaNueva })
+    await setDoc(getConfigRef(), { categorias: listaNueva }, { merge: true })
   }
 
   const borrarCategoria = async (categoria: Categoria) => {
     const listaNueva = categorias.value.filter((c) => c.id !== categoria.id)
-    await updateDoc(getConfigRef(), { categorias: listaNueva })
+    await setDoc(getConfigRef(), { categorias: listaNueva }, { merge: true })
   }
 
   // ===========================================
@@ -197,7 +209,7 @@ export const useGastosStore = defineStore('gastos', () => {
 
     await setDoc(
       doc(db, `users/${uid}/presupuestos/${mesKey}`),
-      { [categoria]: 0 },
+      { [categoria]: deleteField() },
       { merge: true },
     )
   }
@@ -208,8 +220,7 @@ export const useGastosStore = defineStore('gastos', () => {
     const yearActual = fechaVisual.value.getFullYear()
     const monthActual = fechaVisual.value.getMonth()
 
-    const fechaAnterior = new Date(fechaVisual.value)
-    fechaAnterior.setMonth(fechaAnterior.getMonth() - 1)
+    const fechaAnterior = sumarMeses(fechaVisual.value, -1)
     const yearAnterior = fechaAnterior.getFullYear()
     const monthAnterior = fechaAnterior.getMonth()
 
@@ -252,17 +263,18 @@ export const useGastosStore = defineStore('gastos', () => {
       return
     }
 
-    // Con cuotas
+    // Con cuotas: la última absorbe la diferencia de redondeo
+    // para que la suma de las cuotas sea exactamente el monto total
     const montoCuota = Number((monto / cuotas).toFixed(2))
+    const montoUltimaCuota = Number((monto - montoCuota * (cuotas - 1)).toFixed(2))
     const batchPromises = []
 
     for (let i = 0; i < cuotas; i++) {
-      const fechaCuota = new Date(fechaBase)
-      fechaCuota.setMonth(fechaBase.getMonth() + i)
+      const fechaCuota = sumarMeses(fechaBase, i)
 
       batchPromises.push(
         addDoc(colRef, {
-          monto: montoCuota,
+          monto: i === cuotas - 1 ? montoUltimaCuota : montoCuota,
           descripcion: `${descripcion} (${i + 1}/${cuotas})`,
           categoria,
           tipo: 'gasto',
@@ -297,9 +309,7 @@ export const useGastosStore = defineStore('gastos', () => {
   // ===========================================
 
   const cambiarMes = (delta: number) => {
-    const f = new Date(fechaVisual.value)
-    f.setMonth(f.getMonth() + delta)
-    fechaVisual.value = f
+    fechaVisual.value = sumarMeses(fechaVisual.value, delta)
     subscribirseAPresupuestos()
   }
 
