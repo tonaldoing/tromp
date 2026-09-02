@@ -7,7 +7,7 @@ import MonthSelector from '../components/MonthSelector.vue'
 import { getIcono } from '../utils/icons'
 import { formatearDinero } from '../utils/formato'
 
-import { ArrowUpRight, ArrowDownLeft, Inbox, LogOut } from 'lucide-vue-next'
+import { ArrowUpRight, ArrowDownLeft, Inbox, LogOut, ClipboardPaste } from 'lucide-vue-next'
 
 const store = useGastosStore()
 const authStore = useAuthStore()
@@ -47,6 +47,14 @@ const irAEditar = (id: string) => {
           Hola, {{ authStore.userProfile?.displayName?.split(' ')[0] || 'Usuario' }}
         </h1>
       </div>
+
+      <RouterLink
+        to="/import"
+        class="w-10 h-10 flex items-center justify-center bg-white rounded-full border border-gray-200 shadow-sm text-gray-400 hover:text-blue-600 hover:border-blue-200 active:scale-95 transition-all shrink-0"
+        title="Importar gastos"
+      >
+        <ClipboardPaste :size="18" />
+      </RouterLink>
 
       <button
         @click="authStore.logout()"
