@@ -2,6 +2,7 @@
 import { ref, watch, computed } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import { useGastosStore } from '../stores/gastos'
+import { useUiStore } from '../stores/ui'
 import { storeToRefs } from 'pinia'
 import { getIcono } from '../utils/icons'
 import MonthSelector from '../components/MonthSelector.vue'
@@ -17,6 +18,7 @@ import {
 } from 'lucide-vue-next'
 
 const store = useGastosStore()
+const ui = useUiStore()
 const router = useRouter()
 const { presupuestos, categoriasGasto, presupuestoConfigurado, fechaVisual } = storeToRefs(store)
 
@@ -80,24 +82,29 @@ const mesActual = computed(() => {
 })
 
 const copiarMesAnterior = async () => {
-  if (confirm('¿Copiar los presupuestos del mes anterior?')) {
-    copiando.value = true
-    try {
-      const copiado = await store.copiarPresupuestoMesAnterior()
-      if (copiado) {
-        exito.value = true
-        setTimeout(() => {
-          exito.value = false
-        }, 2000)
-      } else {
-        alert('No hay presupuestos del mes anterior para copiar')
-      }
-    } catch (error) {
-      console.error('Error copiando presupuesto:', error)
-      alert('No se pudo copiar el presupuesto. Intentá de nuevo.')
-    } finally {
-      copiando.value = false
+  const ok = await ui.confirmar({
+    titulo: 'Copiar presupuesto',
+    mensaje: `Se van a copiar los topes del mes anterior a ${mesActual.value}.`,
+    textoConfirmar: 'Copiar',
+  })
+  if (!ok) return
+
+  copiando.value = true
+  try {
+    const copiado = await store.copiarPresupuestoMesAnterior()
+    if (copiado) {
+      exito.value = true
+      setTimeout(() => {
+        exito.value = false
+      }, 2000)
+    } else {
+      ui.toast('No hay presupuestos del mes anterior para copiar', 'info')
     }
+  } catch (error) {
+    console.error('Error copiando presupuesto:', error)
+    ui.toast('No se pudo copiar el presupuesto. Intentá de nuevo.', 'error')
+  } finally {
+    copiando.value = false
   }
 }
 
@@ -112,7 +119,7 @@ const guardarTodo = async () => {
     setTimeout(() => (exito.value = false), 2000)
   } catch (error) {
     console.error('Error guardando presupuesto:', error)
-    alert('No se pudo guardar el presupuesto. Revisá tu conexión e intentá de nuevo.')
+    ui.toast('No se pudo guardar el presupuesto. Revisá tu conexión e intentá de nuevo.', 'error')
   } finally {
     guardando.value = false
   }
@@ -125,7 +132,8 @@ const guardarTodo = async () => {
     <header class="flex items-center gap-4 mb-6">
       <button
         @click="router.back()"
-        class="w-10 h-10 flex items-center justify-center bg-white rounded-full border border-gray-200 shadow-sm text-gray-700 active:scale-95 transition-transform"
+        aria-label="Volver"
+        class="w-11 h-11 flex items-center justify-center bg-white rounded-full border border-gray-200 shadow-sm text-gray-700 active:scale-95 transition-transform"
       >
         <ArrowLeft :size="20" />
       </button>
@@ -208,12 +216,12 @@ const guardarTodo = async () => {
         </div>
 
         <div class="flex-1 min-w-0">
-          <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">
+          <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
             {{ cat.nombre }}
           </label>
 
           <div class="relative flex items-center">
-            <span class="text-gray-400 font-bold text-lg mr-1">$</span>
+            <span class="text-gray-500 font-bold text-lg mr-1">$</span>
             <input
               type="text"
               inputmode="numeric"
@@ -228,7 +236,7 @@ const guardarTodo = async () => {
 
       <RouterLink
         to="/categories"
-        class="flex items-center justify-center gap-2 p-4 mt-4 text-gray-400 hover:text-blue-600 transition-colors border-2 border-dashed border-gray-200 rounded-2xl hover:border-blue-200"
+        class="flex items-center justify-center gap-2 p-4 mt-4 text-gray-500 hover:text-blue-600 transition-colors border-2 border-dashed border-gray-200 rounded-2xl hover:border-blue-200"
       >
         <span class="text-sm font-bold">Gestionar Categorías</span>
         <ChevronRight :size="16" />
@@ -247,7 +255,7 @@ const guardarTodo = async () => {
             : guardando
               ? 'bg-gray-300 text-gray-500'
               : !hayDiferencias && presupuestoConfigurado
-                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                 : 'bg-black text-white hover:bg-gray-800'
         "
       >

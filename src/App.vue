@@ -3,6 +3,7 @@ import { onMounted, watch } from 'vue'
 import { RouterView, useRoute, RouterLink } from 'vue-router'
 import { useGastosStore } from './stores/gastos'
 import { useAuthStore } from './stores/auth'
+import AppDialogos from './components/AppDialogos.vue'
 import { Home, PieChart, Plus, Wallet, Tags } from 'lucide-vue-next'
 
 const gastosStore = useGastosStore()
@@ -28,6 +29,7 @@ watch(
 
 <template>
   <div class="min-h-screen bg-gray-50 font-sans text-gray-900">
+    <AppDialogos />
     <div
       v-if="authStore.cargandoAuth"
       class="h-screen flex flex-col items-center justify-center bg-gray-900 text-white"
@@ -64,7 +66,7 @@ watch(
         <div class="flex justify-between items-center px-6 h-[70px]">
           <RouterLink
             to="/"
-            class="group flex flex-col items-center justify-center gap-1 w-12 text-gray-400 transition-colors hover:text-gray-600"
+            class="group flex flex-col items-center justify-center gap-1 min-w-12 px-1 text-gray-500 transition-colors hover:text-gray-700"
             active-class="!text-black"
           >
             <div
@@ -72,12 +74,12 @@ watch(
             >
               <Home :size="24" stroke-width="2.5" />
             </div>
-            <span class="text-[10px] font-bold tracking-wide">Inicio</span>
+            <span class="text-xs font-bold tracking-wide">Inicio</span>
           </RouterLink>
 
           <RouterLink
             to="/stats"
-            class="group flex flex-col items-center justify-center gap-1 w-12 text-gray-400 transition-colors hover:text-gray-600"
+            class="group flex flex-col items-center justify-center gap-1 min-w-12 px-1 text-gray-500 transition-colors hover:text-gray-700"
             active-class="!text-black"
           >
             <div
@@ -85,12 +87,13 @@ watch(
             >
               <PieChart :size="24" stroke-width="2.5" />
             </div>
-            <span class="text-[10px] font-bold tracking-wide">Balance</span>
+            <span class="text-xs font-bold tracking-wide">Balance</span>
           </RouterLink>
 
           <div class="relative -top-6">
             <RouterLink
               to="/add"
+              aria-label="Agregar movimiento"
               class="flex items-center justify-center w-14 h-14 bg-black text-white rounded-full shadow-xl shadow-blue-900/20 transform transition-transform active:scale-90 hover:scale-105 border-[4px] border-gray-50"
             >
               <Plus :size="28" stroke-width="3" />
@@ -99,7 +102,7 @@ watch(
 
           <RouterLink
             to="/budget"
-            class="group flex flex-col items-center justify-center gap-1 w-12 text-gray-400 transition-colors hover:text-gray-600"
+            class="group flex flex-col items-center justify-center gap-1 min-w-12 px-1 text-gray-500 transition-colors hover:text-gray-700"
             active-class="!text-black"
           >
             <div
@@ -107,12 +110,12 @@ watch(
             >
               <Wallet :size="24" stroke-width="2.5" />
             </div>
-            <span class="text-[10px] font-bold tracking-wide">Topes</span>
+            <span class="text-xs font-bold tracking-wide">Topes</span>
           </RouterLink>
 
           <RouterLink
             to="/categories"
-            class="group flex flex-col items-center justify-center gap-1 w-12 text-gray-400 transition-colors hover:text-gray-600"
+            class="group flex flex-col items-center justify-center gap-1 min-w-12 px-1 text-gray-500 transition-colors hover:text-gray-700"
             active-class="!text-black"
           >
             <div
@@ -120,7 +123,7 @@ watch(
             >
               <Tags :size="24" stroke-width="2.5" />
             </div>
-            <span class="text-[10px] font-bold tracking-wide">Categorías</span>
+            <span class="text-xs font-bold tracking-wide">Categorías</span>
           </RouterLink>
         </div>
       </nav>

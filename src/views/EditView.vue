@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useGastosStore, type Gasto } from '../stores/gastos'
+import { useUiStore } from '../stores/ui'
 import { storeToRefs } from 'pinia'
 import { getIcono } from '../utils/icons'
 import { formatearMontoInput, limpiarMontoInput } from '../utils/formato'
@@ -17,6 +18,7 @@ import {
 } from 'lucide-vue-next'
 
 const store = useGastosStore()
+const ui = useUiStore()
 const { categoriasGasto, categoriasIngreso } = storeToRefs(store)
 const router = useRouter()
 const route = useRoute()
@@ -123,24 +125,31 @@ const actualizar = async () => {
     router.push('/')
   } catch (error) {
     console.error('Error actualizando movimiento:', error)
-    alert('No se pudo guardar el cambio. Revisá tu conexión e intentá de nuevo.')
+    ui.toast('No se pudo guardar el cambio. Revisá tu conexión e intentá de nuevo.', 'error')
   } finally {
     guardando.value = false
   }
 }
 
 const eliminar = async () => {
-  if (confirm('¿Seguro que quieres borrar este movimiento?')) {
-    guardando.value = true
-    try {
-      await store.borrarGasto(gastoId)
-      router.push('/')
-    } catch (error) {
-      console.error('Error borrando movimiento:', error)
-      alert('No se pudo borrar el movimiento. Intentá de nuevo.')
-    } finally {
-      guardando.value = false
-    }
+  const ok = await ui.confirmar({
+    titulo: 'Borrar movimiento',
+    mensaje: `Se va a eliminar "${descripcion.value}". Esta acción no se puede deshacer.`,
+    textoConfirmar: 'Borrar',
+    destructiva: true,
+  })
+  if (!ok) return
+
+  guardando.value = true
+  try {
+    await store.borrarGasto(gastoId)
+    ui.toast('Movimiento borrado', 'exito')
+    router.push('/')
+  } catch (error) {
+    console.error('Error borrando movimiento:', error)
+    ui.toast('No se pudo borrar el movimiento. Intentá de nuevo.', 'error')
+  } finally {
+    guardando.value = false
   }
 }
 </script>
@@ -151,7 +160,8 @@ const eliminar = async () => {
       <div class="flex items-center gap-4">
         <button
           @click="router.back()"
-          class="w-10 h-10 flex items-center justify-center bg-white rounded-full border border-gray-200 shadow-sm text-gray-700 active:scale-95 transition-transform"
+          aria-label="Volver"
+          class="w-11 h-11 flex items-center justify-center bg-white rounded-full border border-gray-200 shadow-sm text-gray-700 active:scale-95 transition-transform"
         >
           <ArrowLeft :size="20" />
         </button>
@@ -160,7 +170,8 @@ const eliminar = async () => {
 
       <button
         @click="eliminar"
-        class="w-10 h-10 flex items-center justify-center bg-red-50 rounded-full text-red-500 hover:bg-red-100 transition-colors"
+        aria-label="Borrar movimiento"
+        class="w-11 h-11 flex items-center justify-center bg-red-50 rounded-full text-red-500 hover:bg-red-100 transition-colors"
       >
         <Trash2 :size="20" />
       </button>
@@ -194,7 +205,7 @@ const eliminar = async () => {
           @click="cambiarTipo('gasto')"
           class="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-sm font-bold transition-all"
           :class="
-            !esIngreso ? 'bg-black text-white shadow-md' : 'text-gray-400 hover:text-gray-600'
+            !esIngreso ? 'bg-black text-white shadow-md' : 'text-gray-500 hover:text-gray-600'
           "
         >
           <TrendingDown :size="16" />
@@ -204,7 +215,7 @@ const eliminar = async () => {
           @click="cambiarTipo('ingreso')"
           class="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-sm font-bold transition-all"
           :class="
-            esIngreso ? 'bg-green-600 text-white shadow-md' : 'text-gray-400 hover:text-gray-600'
+            esIngreso ? 'bg-green-600 text-white shadow-md' : 'text-gray-500 hover:text-gray-600'
           "
         >
           <TrendingUp :size="16" />
@@ -214,11 +225,11 @@ const eliminar = async () => {
 
       <!-- Monto -->
       <div class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
-        <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-1"
+        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1"
           >Monto</label
         >
         <div class="relative flex items-center">
-          <span class="text-2xl font-bold text-gray-400 mr-1">$</span>
+          <span class="text-2xl font-bold text-gray-500 mr-1">$</span>
           <input
             :value="formatearMontoInput(monto)"
             @input="onInputMonto"
@@ -231,7 +242,7 @@ const eliminar = async () => {
 
       <!-- Descripción -->
       <div class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
-        <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-2"
+        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2"
           >Descripción</label
         >
         <input
@@ -244,7 +255,7 @@ const eliminar = async () => {
       <!-- Fecha -->
       <div class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
         <label
-          class="flex items-center gap-1 text-xs font-bold text-gray-400 uppercase tracking-wide mb-2"
+          class="flex items-center gap-1 text-xs font-bold text-gray-500 uppercase tracking-wide mb-2"
         >
           <Calendar :size="14" /> Fecha
         </label>
@@ -258,7 +269,7 @@ const eliminar = async () => {
       <!-- Categoría -->
       <div>
         <label
-          class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-1"
+          class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-1"
         >
           <Tag :size="14" /> {{ esIngreso ? 'Fuente' : 'Categoría' }}
         </label>
@@ -282,12 +293,12 @@ const eliminar = async () => {
 
           <div
             v-if="categoriasActivas.length === 0"
-            class="w-full text-center py-4 bg-gray-100 rounded-2xl border border-dashed border-gray-300 text-gray-400 text-sm"
+            class="w-full text-center py-4 bg-gray-100 rounded-2xl border border-dashed border-gray-300 text-gray-500 text-sm"
           >
             No hay categorías de {{ esIngreso ? 'ingreso' : 'gasto' }} creadas.
           </div>
         </div>
-        <p v-if="!categoria" class="text-xs text-gray-400 font-medium mt-2">
+        <p v-if="!categoria" class="text-xs text-gray-500 font-medium mt-2">
           Elegí una categoría para poder guardar
         </p>
       </div>

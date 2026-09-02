@@ -50,7 +50,7 @@ const handleLogin = async () => {
     <div class="mb-8 text-7xl animate-bounce">💸</div>
 
     <h1 class="text-4xl font-bold text-white mb-2 tracking-tight">Trompocostos</h1>
-    <p class="text-gray-400 mb-12 text-lg">Tu economía, bajo control.</p>
+    <p class="text-gray-500 mb-12 text-lg">Tu economía, bajo control.</p>
 
     <button
       @click="handleLogin"

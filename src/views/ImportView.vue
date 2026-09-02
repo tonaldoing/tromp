@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useGastosStore } from '../stores/gastos'
+import { useUiStore } from '../stores/ui'
 import { storeToRefs } from 'pinia'
 import { getIcono } from '../utils/icons'
 import { formatearDinero } from '../utils/formato'
@@ -20,6 +21,7 @@ import {
 } from 'lucide-vue-next'
 
 const store = useGastosStore()
+const ui = useUiStore()
 const { categoriasGasto } = storeToRefs(store)
 const router = useRouter()
 
@@ -83,8 +85,9 @@ const importar = async () => {
     texto.value = ''
   } catch (error) {
     console.error('Error importando movimientos:', error)
-    alert(
+    ui.toast(
       'No se pudieron importar todos los movimientos. Revisá el mes destino antes de reintentar.',
+      'error',
     )
   } finally {
     importando.value = false
@@ -107,7 +110,8 @@ const importarMas = () => {
     <header class="flex items-center gap-4 mb-6">
       <button
         @click="router.back()"
-        class="w-10 h-10 flex items-center justify-center bg-white rounded-full border border-gray-200 shadow-sm text-gray-700 active:scale-95 transition-transform"
+        aria-label="Volver"
+        class="w-11 h-11 flex items-center justify-center bg-white rounded-full border border-gray-200 shadow-sm text-gray-700 active:scale-95 transition-transform"
       >
         <ArrowLeft :size="20" />
       </button>
@@ -127,7 +131,7 @@ const importarMas = () => {
         <CheckCircle2 :size="40" stroke-width="1.5" />
       </div>
       <p class="font-bold text-gray-800 text-xl">¡{{ importados }} gastos importados!</p>
-      <p class="text-sm text-gray-400 mt-1 mb-8">Quedaron cargados en {{ nombreMesDestino }}.</p>
+      <p class="text-sm text-gray-500 mt-1 mb-8">Quedaron cargados en {{ nombreMesDestino }}.</p>
 
       <div class="flex flex-col gap-3 w-full max-w-xs">
         <button
@@ -152,7 +156,7 @@ const importarMas = () => {
       >
         <button
           @click="cambiarMesDestino(-1)"
-          class="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-blue-600 transition-all active:scale-90"
+          class="p-2 rounded-xl hover:bg-gray-100 text-gray-500 hover:text-blue-600 transition-all active:scale-90"
           aria-label="Mes anterior"
         >
           <ChevronLeft :size="24" stroke-width="2.5" />
@@ -160,7 +164,7 @@ const importarMas = () => {
 
         <div class="flex flex-col items-center">
           <span
-            class="text-xs font-bold text-gray-400 uppercase tracking-wide flex items-center gap-1"
+            class="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-1"
           >
             <Calendar :size="12" /> Mes destino
           </span>
@@ -171,7 +175,7 @@ const importarMas = () => {
 
         <button
           @click="cambiarMesDestino(1)"
-          class="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-blue-600 transition-all active:scale-90"
+          class="p-2 rounded-xl hover:bg-gray-100 text-gray-500 hover:text-blue-600 transition-all active:scale-90"
           aria-label="Mes siguiente"
         >
           <ChevronRight :size="24" stroke-width="2.5" />
@@ -183,7 +187,7 @@ const importarMas = () => {
         class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm mb-4 focus-within:ring-2 focus-within:ring-black/5"
       >
         <label
-          class="flex items-center gap-1 text-xs font-bold text-gray-400 uppercase tracking-wide mb-2"
+          class="flex items-center gap-1 text-xs font-bold text-gray-500 uppercase tracking-wide mb-2"
         >
           <ClipboardPaste :size="14" /> Un gasto por línea
         </label>
@@ -198,7 +202,7 @@ Nafta 40000"
         ></textarea>
       </div>
 
-      <p class="text-xs text-gray-400 font-medium mb-6 px-1">
+      <p class="text-xs text-gray-500 font-medium mb-6 px-1">
         Formato: <span class="font-bold text-gray-500">descripción monto [categoría] [3x]</span> —
         la categoría es opcional (se usa la de abajo si falta) y "3x" divide el monto en cuotas
         mensuales.
@@ -207,7 +211,7 @@ Nafta 40000"
       <!-- Categoría por defecto -->
       <div class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm mb-6">
         <label
-          class="flex items-center gap-1 text-xs font-bold text-gray-400 uppercase tracking-wide mb-3"
+          class="flex items-center gap-1 text-xs font-bold text-gray-500 uppercase tracking-wide mb-3"
         >
           <Tag :size="14" /> Categoría para líneas sin categoría
         </label>
@@ -234,7 +238,7 @@ Nafta 40000"
         <div class="flex justify-between items-end mb-3">
           <h3 class="text-lg font-bold text-gray-800">Vista previa</h3>
           <span
-            class="text-xs font-medium text-gray-400 bg-white px-2 py-1 rounded-lg border border-gray-100 shadow-sm"
+            class="text-xs font-medium text-gray-500 bg-white px-2 py-1 rounded-lg border border-gray-100 shadow-sm"
           >
             {{ lineasValidas.length }} de {{ lineas.length }} ok
           </span>
@@ -261,7 +265,7 @@ Nafta 40000"
                 <p class="font-bold text-gray-800 text-sm truncate">{{ l.descripcion }}</p>
                 <div class="flex items-center gap-1.5 mt-0.5">
                   <span
-                    class="text-[10px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wide"
+                    class="text-xs font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wide"
                     :class="
                       l.categoria ? 'text-gray-500 bg-gray-100' : 'text-amber-600 bg-amber-50'
                     "
@@ -270,7 +274,7 @@ Nafta 40000"
                   </span>
                   <span
                     v-if="l.cuotas"
-                    class="text-[10px] font-bold text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded-md"
+                    class="text-xs font-bold text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded-md"
                   >
                     {{ l.cuotas }} cuotas
                   </span>
@@ -303,7 +307,7 @@ Nafta 40000"
           class="w-full py-4 rounded-2xl text-lg font-bold shadow-xl transform transition-all active:scale-95 flex justify-center items-center gap-3 border border-gray-100"
           :class="
             importando || lineasValidas.length === 0
-              ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
               : 'bg-black text-white hover:bg-gray-800'
           "
         >

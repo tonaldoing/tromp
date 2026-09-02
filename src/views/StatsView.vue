@@ -75,7 +75,8 @@ const gastosPorCategoria = computed(() => {
     <header class="flex items-center gap-4 mb-6">
       <button
         @click="router.back()"
-        class="w-10 h-10 flex items-center justify-center bg-white rounded-full border border-gray-200 shadow-sm text-gray-700 active:scale-95 transition-transform"
+        aria-label="Volver"
+        class="w-11 h-11 flex items-center justify-center bg-white rounded-full border border-gray-200 shadow-sm text-gray-700 active:scale-95 transition-transform"
       >
         <ArrowLeft :size="20" />
       </button>
@@ -138,7 +139,7 @@ const gastosPorCategoria = computed(() => {
           >
             <ArrowDownLeft :size="16" stroke-width="3" />
           </div>
-          <span class="text-xs font-bold text-gray-400 uppercase">Ingresos</span>
+          <span class="text-xs font-bold text-gray-500 uppercase">Ingresos</span>
         </div>
         <p class="text-xl font-extrabold text-gray-800 tracking-tight">
           $ {{ formatearDinero(totalIngresos) }}
@@ -152,7 +153,7 @@ const gastosPorCategoria = computed(() => {
           <div class="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center text-red-600">
             <ArrowUpRight :size="16" stroke-width="3" />
           </div>
-          <span class="text-xs font-bold text-gray-400 uppercase">Gastos</span>
+          <span class="text-xs font-bold text-gray-500 uppercase">Gastos</span>
         </div>
         <p class="text-xl font-extrabold text-gray-800 tracking-tight">
           $ {{ formatearDinero(totalGastos) }}
@@ -181,7 +182,7 @@ const gastosPorCategoria = computed(() => {
               </div>
               <div>
                 <p class="font-bold text-gray-800 text-sm">{{ cat.nombre }}</p>
-                <p class="text-xs text-gray-400 font-medium">
+                <p class="text-xs text-gray-500 font-medium">
                   {{ cat.porcentaje.toFixed(1) }}% del total
                 </p>
               </div>
