@@ -75,20 +75,26 @@ const iconoToast = (tipo: string) => {
       role="alertdialog"
       aria-modal="true"
       :aria-label="confirmacion.titulo"
-      class="relative w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl border border-gray-100 mb-safe"
+      class="relative w-full max-w-sm bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-2xl border border-gray-100 dark:border-slate-700 mb-safe"
     >
       <div class="flex items-start gap-4 mb-5">
         <div
           class="w-11 h-11 rounded-full flex items-center justify-center shrink-0"
-          :class="confirmacion.destructiva ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-primario'"
+          :class="
+            confirmacion.destructiva
+              ? 'bg-red-50 dark:bg-red-950/50 text-red-500 dark:text-red-400'
+              : 'bg-blue-50 dark:bg-blue-950/50 text-primario'
+          "
         >
           <AlertTriangle :size="22" />
         </div>
         <div class="min-w-0">
-          <h2 class="font-extrabold text-gray-900 text-lg leading-tight">
+          <h2 class="font-extrabold text-gray-900 dark:text-slate-100 text-lg leading-tight">
             {{ confirmacion.titulo }}
           </h2>
-          <p class="text-sm text-gray-500 mt-1 leading-snug">{{ confirmacion.mensaje }}</p>
+          <p class="text-sm text-gray-500 dark:text-slate-400 mt-1 leading-snug">
+            {{ confirmacion.mensaje }}
+          </p>
         </div>
       </div>
 
@@ -96,7 +102,7 @@ const iconoToast = (tipo: string) => {
         <button
           ref="botonCancelar"
           @click="ui.responderConfirmacion(false)"
-          class="flex-1 py-3.5 rounded-2xl font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 active:scale-95 transition-all"
+          class="flex-1 py-3.5 rounded-2xl font-bold text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 active:scale-95 transition-all"
         >
           Cancelar
         </button>
@@ -105,8 +111,8 @@ const iconoToast = (tipo: string) => {
           class="flex-1 py-3.5 rounded-2xl font-bold text-white active:scale-95 transition-all shadow-lg"
           :class="
             confirmacion.destructiva
-              ? 'bg-red-600 hover:bg-red-700 shadow-red-200'
-              : 'bg-primario hover:bg-primario-hover shadow-gray-300'
+              ? 'bg-red-600 hover:bg-red-700 shadow-red-200 dark:shadow-none'
+              : 'bg-primario hover:bg-primario-hover shadow-gray-300 dark:shadow-none'
           "
         >
           {{ confirmacion.textoConfirmar }}

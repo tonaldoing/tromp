@@ -28,13 +28,15 @@ watch(
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50 font-sans text-gray-900">
+  <div
+    class="min-h-screen bg-gray-50 dark:bg-slate-900 font-sans text-gray-900 dark:text-slate-100"
+  >
     <AppDialogos />
     <div
       v-if="authStore.cargandoAuth"
       class="h-screen flex flex-col items-center justify-center bg-gray-900 text-white"
     >
-      <div class="animate-spin text-blue-500 mb-4">
+      <div class="animate-spin text-blue-500 dark:text-blue-300 mb-4">
         <svg class="w-10 h-10" fill="none" viewBox="0 0 24 24">
           <circle
             class="opacity-25"
@@ -56,17 +58,21 @@ watch(
 
     <template v-else>
       <div class="pb-28">
-        <RouterView />
+        <RouterView v-slot="{ Component }">
+          <Transition name="pagina" mode="out-in">
+            <component :is="Component" />
+          </Transition>
+        </RouterView>
       </div>
 
       <nav
         v-if="route.name !== 'login'"
-        class="fixed bottom-0 left-0 w-full bg-white border-t border-gray-100 shadow-[0_-5px_20px_rgba(0,0,0,0.03)] z-50 pb-safe"
+        class="fixed bottom-0 left-0 w-full bg-white dark:bg-slate-800 border-t border-gray-100 dark:border-slate-700 shadow-[0_-5px_20px_rgba(0,0,0,0.03)] z-50 pb-safe"
       >
         <div class="flex justify-between items-center px-6 h-[70px]">
           <RouterLink
             to="/"
-            class="group flex flex-col items-center justify-center gap-1 min-w-12 px-1 text-gray-500 transition-colors hover:text-gray-700"
+            class="group flex flex-col items-center justify-center gap-1 min-w-12 px-1 text-gray-500 dark:text-slate-400 transition-colors hover:text-gray-700 dark:hover:text-slate-200"
             active-class="!text-primario"
           >
             <div
@@ -79,7 +85,7 @@ watch(
 
           <RouterLink
             to="/stats"
-            class="group flex flex-col items-center justify-center gap-1 min-w-12 px-1 text-gray-500 transition-colors hover:text-gray-700"
+            class="group flex flex-col items-center justify-center gap-1 min-w-12 px-1 text-gray-500 dark:text-slate-400 transition-colors hover:text-gray-700 dark:hover:text-slate-200"
             active-class="!text-primario"
           >
             <div
@@ -94,7 +100,7 @@ watch(
             <RouterLink
               to="/add"
               aria-label="Agregar movimiento"
-              class="flex items-center justify-center w-14 h-14 bg-primario text-white rounded-full shadow-xl shadow-blue-900/20 transform transition-transform active:scale-90 hover:scale-105 border-[4px] border-gray-50"
+              class="flex items-center justify-center w-14 h-14 bg-primario text-white rounded-full shadow-xl shadow-blue-900/20 dark:shadow-none transform transition-transform active:scale-90 hover:scale-105 border-[4px] border-gray-50"
             >
               <Plus :size="28" stroke-width="3" />
             </RouterLink>
@@ -102,7 +108,7 @@ watch(
 
           <RouterLink
             to="/budget"
-            class="group flex flex-col items-center justify-center gap-1 min-w-12 px-1 text-gray-500 transition-colors hover:text-gray-700"
+            class="group flex flex-col items-center justify-center gap-1 min-w-12 px-1 text-gray-500 dark:text-slate-400 transition-colors hover:text-gray-700 dark:hover:text-slate-200"
             active-class="!text-primario"
           >
             <div
@@ -115,7 +121,7 @@ watch(
 
           <RouterLink
             to="/categories"
-            class="group flex flex-col items-center justify-center gap-1 min-w-12 px-1 text-gray-500 transition-colors hover:text-gray-700"
+            class="group flex flex-col items-center justify-center gap-1 min-w-12 px-1 text-gray-500 dark:text-slate-400 transition-colors hover:text-gray-700 dark:hover:text-slate-200"
             active-class="!text-primario"
           >
             <div
