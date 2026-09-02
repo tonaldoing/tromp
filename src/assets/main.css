@@ -1,1 +1,22 @@
 @import 'tailwindcss';
+
+/* Foco visible para navegación con teclado (WCAG 2.4.7).
+   Muchos inputs usan outline-none de Tailwind; esta regla lo recupera
+   solo cuando el foco viene del teclado, sin ensuciar el uso táctil. */
+*:focus-visible {
+  outline: 2px solid #2563eb !important;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Respetar la preferencia de movimiento reducido del usuario */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

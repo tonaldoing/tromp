@@ -50,7 +50,8 @@ const irAEditar = (id: string) => {
 
       <RouterLink
         to="/import"
-        class="w-10 h-10 flex items-center justify-center bg-white rounded-full border border-gray-200 shadow-sm text-gray-400 hover:text-blue-600 hover:border-blue-200 active:scale-95 transition-all shrink-0"
+        aria-label="Importar gastos"
+        class="w-11 h-11 flex items-center justify-center bg-white rounded-full border border-gray-200 shadow-sm text-gray-500 hover:text-blue-600 hover:border-blue-200 active:scale-95 transition-all shrink-0"
         title="Importar gastos"
       >
         <ClipboardPaste :size="18" />
@@ -58,7 +59,8 @@ const irAEditar = (id: string) => {
 
       <button
         @click="authStore.logout()"
-        class="w-10 h-10 flex items-center justify-center bg-white rounded-full border border-gray-200 shadow-sm text-gray-400 hover:text-red-500 hover:border-red-200 active:scale-95 transition-all shrink-0"
+        aria-label="Cerrar sesión"
+        class="w-11 h-11 flex items-center justify-center bg-white rounded-full border border-gray-200 shadow-sm text-gray-500 hover:text-red-500 hover:border-red-200 active:scale-95 transition-all shrink-0"
         title="Cerrar sesión"
       >
         <LogOut :size="18" />
@@ -71,7 +73,7 @@ const irAEditar = (id: string) => {
     <!-- Balance Card -->
     <div class="bg-white rounded-3xl p-5 shadow-lg shadow-gray-200/50 mb-8 border border-gray-100">
       <div class="flex justify-between items-center mb-4">
-        <span class="text-xs font-bold text-gray-400 uppercase tracking-wider"
+        <span class="text-xs font-bold text-gray-500 uppercase tracking-wider"
           >Balance Mensual</span
         >
       </div>
@@ -200,7 +202,7 @@ const irAEditar = (id: string) => {
     <div class="flex justify-between items-end mb-4">
       <h3 class="text-lg font-bold text-gray-800">Movimientos</h3>
       <span
-        class="text-xs font-medium text-gray-400 bg-white px-2 py-1 rounded-lg border border-gray-100 shadow-sm"
+        class="text-xs font-medium text-gray-500 bg-white px-2 py-1 rounded-lg border border-gray-100 shadow-sm"
         >{{ movimientosDelMes.length }} registros</span
       >
     </div>
@@ -225,7 +227,7 @@ const irAEditar = (id: string) => {
         <Inbox :size="40" stroke-width="1.5" />
       </div>
       <p class="font-bold text-gray-600">Todo tranquilo</p>
-      <p class="text-sm text-gray-400 mt-1">No hay movimientos registrados<br />en este mes.</p>
+      <p class="text-sm text-gray-500 mt-1">No hay movimientos registrados<br />en este mes.</p>
     </div>
 
     <!-- Lista de movimientos -->
@@ -274,7 +276,7 @@ const irAEditar = (id: string) => {
             }}</span>
             <div class="flex items-center gap-2 mt-1">
               <span
-                class="text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wide"
+                class="text-xs font-bold px-2 py-0.5 rounded-md uppercase tracking-wide"
                 :class="
                   mov.tipo === 'ingreso'
                     ? 'text-green-600 bg-green-100'
@@ -283,7 +285,7 @@ const irAEditar = (id: string) => {
               >
                 {{ mov.categoria }}
               </span>
-              <span class="text-xs text-gray-400 font-medium">
+              <span class="text-xs text-gray-500 font-medium">
                 {{ formatearFecha(mov.fecha) }}
               </span>
             </div>
@@ -299,7 +301,7 @@ const irAEditar = (id: string) => {
           </p>
           <p
             v-if="mov.totalCuotas && mov.totalCuotas > 1"
-            class="text-[10px] font-bold text-blue-500 bg-blue-50 inline-block px-1.5 rounded-md mt-1"
+            class="text-xs font-bold text-blue-500 bg-blue-50 inline-block px-1.5 rounded-md mt-1"
           >
             {{ mov.cuotaActual }}/{{ mov.totalCuotas }}
           </p>

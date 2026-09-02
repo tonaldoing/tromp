@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useGastosStore, type Categoria } from '../stores/gastos'
+import { useUiStore } from '../stores/ui'
 import { storeToRefs } from 'pinia'
 import { ICONOS_DISPONIBLES, getIcono } from '../utils/icons'
 
@@ -18,6 +19,7 @@ import {
 } from 'lucide-vue-next'
 
 const store = useGastosStore()
+const ui = useUiStore()
 const { categoriasGasto, categoriasIngreso } = storeToRefs(store)
 const router = useRouter()
 
@@ -114,20 +116,27 @@ const guardar = async () => {
     }, 1500)
   } catch (e) {
     console.error(e)
-    alert(e instanceof Error ? e.message : 'Error al guardar')
+    ui.toast(e instanceof Error ? e.message : 'Error al guardar', 'error')
     guardando.value = false
   }
 }
 
 const borrar = async (cat: Categoria) => {
-  if (confirm(`¿Borrar categoría "${cat.nombre}"?`)) {
-    try {
-      await store.borrarCategoria(cat)
-      if (idEditando.value === cat.id) limpiarForm()
-    } catch (e) {
-      console.error(e)
-      alert('No se pudo borrar la categoría. Intentá de nuevo.')
-    }
+  const ok = await ui.confirmar({
+    titulo: 'Borrar categoría',
+    mensaje: `Se va a eliminar "${cat.nombre}". Los movimientos ya registrados con esta categoría no se borran.`,
+    textoConfirmar: 'Borrar',
+    destructiva: true,
+  })
+  if (!ok) return
+
+  try {
+    await store.borrarCategoria(cat)
+    if (idEditando.value === cat.id) limpiarForm()
+    ui.toast(`Categoría "${cat.nombre}" borrada`, 'exito')
+  } catch (e) {
+    console.error(e)
+    ui.toast('No se pudo borrar la categoría. Intentá de nuevo.', 'error')
   }
 }
 
@@ -144,7 +153,8 @@ const cambiarTab = (tab: 'gasto' | 'ingreso') => {
     <header class="flex items-center gap-4 mb-6">
       <button
         @click="router.back()"
-        class="w-10 h-10 flex items-center justify-center bg-white border border-gray-200 rounded-full shadow-sm active:scale-95 transition-transform text-gray-700"
+        aria-label="Volver"
+        class="w-11 h-11 flex items-center justify-center bg-white border border-gray-200 rounded-full shadow-sm active:scale-95 transition-transform text-gray-700"
       >
         <ChevronLeft :size="22" stroke-width="2.5" />
       </button>
@@ -159,7 +169,7 @@ const cambiarTab = (tab: 'gasto' | 'ingreso') => {
         :class="
           tabActivo === 'gasto'
             ? 'bg-black text-white shadow-md'
-            : 'text-gray-400 hover:text-gray-600'
+            : 'text-gray-500 hover:text-gray-600'
         "
       >
         <TrendingDown :size="16" />
@@ -177,7 +187,7 @@ const cambiarTab = (tab: 'gasto' | 'ingreso') => {
         :class="
           tabActivo === 'ingreso'
             ? 'bg-green-600 text-white shadow-md'
-            : 'text-gray-400 hover:text-gray-600'
+            : 'text-gray-500 hover:text-gray-600'
         "
       >
         <TrendingUp :size="16" />
@@ -212,14 +222,15 @@ const cambiarTab = (tab: 'gasto' | 'ingreso') => {
         <button
           v-if="modoEdicion"
           @click="limpiarForm"
-          class="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200 transition-colors"
+          aria-label="Cancelar edición"
+          class="w-11 h-11 flex items-center justify-center bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200 transition-colors"
         >
           <X :size="16" />
         </button>
       </div>
 
       <div class="mb-6">
-        <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-2"
+        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2"
           >Nombre</label
         >
         <div class="relative">
@@ -229,14 +240,14 @@ const cambiarTab = (tab: 'gasto' | 'ingreso') => {
             class="w-full p-4 pl-12 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-black focus:bg-white outline-none font-bold text-gray-800 text-lg transition-all"
             @keyup.enter="guardar"
           />
-          <div class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+          <div class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
             <component :is="getIcono(iconoSeleccionado)" :size="20" stroke-width="2.5" />
           </div>
         </div>
       </div>
 
       <div class="mb-8">
-        <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-3"
+        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-3"
           >Elige un icono</label
         >
         <div
@@ -250,7 +261,7 @@ const cambiarTab = (tab: 'gasto' | 'ingreso') => {
             :class="
               iconoSeleccionado === icono
                 ? colores.selected + ' shadow-lg scale-105'
-                : 'bg-white text-gray-400 border border-gray-200 hover:border-gray-400 hover:text-gray-600'
+                : 'bg-white text-gray-500 border border-gray-200 hover:border-gray-400 hover:text-gray-600'
             "
           >
             <component :is="getIcono(icono)" :size="20" stroke-width="2" />
@@ -307,7 +318,8 @@ const cambiarTab = (tab: 'gasto' | 'ingreso') => {
 
         <button
           @click.stop="borrar(cat)"
-          class="w-10 h-10 flex items-center justify-center rounded-full text-gray-300 hover:text-red-500 hover:bg-red-50 transition-all opacity-60 group-hover:opacity-100"
+          :aria-label="`Borrar categoría ${cat.nombre}`"
+          class="w-11 h-11 flex items-center justify-center rounded-full text-gray-300 hover:text-red-500 hover:bg-red-50 transition-all opacity-60 group-hover:opacity-100"
         >
           <Trash2 :size="20" stroke-width="2" />
         </button>
@@ -323,13 +335,13 @@ const cambiarTab = (tab: 'gasto' | 'ingreso') => {
         <component
           :is="tabActivo === 'ingreso' ? TrendingUp : TrendingDown"
           :size="32"
-          class="text-gray-400"
+          class="text-gray-500"
         />
       </div>
       <p class="font-medium">
         No hay categorías de {{ tabActivo === 'ingreso' ? 'ingreso' : 'gasto' }}.
       </p>
-      <p class="text-sm text-gray-400 mt-1">Creá una usando el formulario de arriba.</p>
+      <p class="text-sm text-gray-500 mt-1">Creá una usando el formulario de arriba.</p>
     </div>
   </div>
 </template>

@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import { useGastosStore } from '../stores/gastos'
+import { useUiStore } from '../stores/ui'
 import { storeToRefs } from 'pinia'
 import { getIcono } from '../utils/icons'
 import { formatearMontoInput, limpiarMontoInput } from '../utils/formato'
@@ -18,6 +19,7 @@ import {
 } from 'lucide-vue-next'
 
 const store = useGastosStore()
+const ui = useUiStore()
 const { categoriasGasto, categoriasIngreso } = storeToRefs(store)
 const router = useRouter()
 
@@ -209,7 +211,7 @@ const guardar = async () => {
     router.push('/')
   } catch (error) {
     console.error('Error guardando movimiento:', error)
-    alert('No se pudo guardar el movimiento. Revisá tu conexión e intentá de nuevo.')
+    ui.toast('No se pudo guardar el movimiento. Revisá tu conexión e intentá de nuevo.', 'error')
   } finally {
     guardando.value = false
   }
@@ -222,7 +224,8 @@ const guardar = async () => {
     <div class="px-5 pt-6 mb-6 flex justify-between items-center">
       <button
         @click="router.back()"
-        class="w-10 h-10 flex items-center justify-center bg-white rounded-full border border-gray-200 shadow-sm text-gray-700 active:scale-95 transition-transform"
+        aria-label="Volver"
+        class="w-11 h-11 flex items-center justify-center bg-white rounded-full border border-gray-200 shadow-sm text-gray-700 active:scale-95 transition-transform"
       >
         <ArrowLeft :size="20" />
       </button>
@@ -235,7 +238,7 @@ const guardar = async () => {
           :class="
             !esIngreso
               ? 'bg-black text-white shadow-md'
-              : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+              : 'text-gray-500 hover:text-gray-600 hover:bg-gray-50'
           "
         >
           <TrendingDown :size="14" />
@@ -247,7 +250,7 @@ const guardar = async () => {
           :class="
             esIngreso
               ? 'bg-green-600 text-white shadow-md'
-              : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+              : 'text-gray-500 hover:text-gray-600 hover:bg-gray-50'
           "
         >
           <TrendingUp :size="14" />
@@ -276,7 +279,7 @@ const guardar = async () => {
             :class="esIngreso ? 'text-green-600' : 'text-gray-900'"
           />
         </div>
-        <p class="text-xs text-gray-400 font-bold uppercase tracking-widest mt-2">
+        <p class="text-xs text-gray-500 font-bold uppercase tracking-widest mt-2">
           {{ textos.subtitulo }}
         </p>
       </div>
@@ -286,7 +289,7 @@ const guardar = async () => {
         class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm focus-within:ring-2 transition-all"
         :class="esIngreso ? 'focus-within:ring-green-200' : 'focus-within:ring-black/5'"
       >
-        <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">
+        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
           Descripción
         </label>
         <input
@@ -302,7 +305,7 @@ const guardar = async () => {
       <div class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
         <div class="flex items-center justify-between mb-3">
           <label
-            class="flex items-center gap-1 text-xs font-bold text-gray-400 uppercase tracking-wide"
+            class="flex items-center gap-1 text-xs font-bold text-gray-500 uppercase tracking-wide"
           >
             <Calendar :size="14" /> Fecha
           </label>
@@ -327,7 +330,7 @@ const guardar = async () => {
             placeholder="DD/MM/YYYY"
             maxlength="10"
             class="w-full text-lg font-bold text-gray-800 outline-none pr-10"
-            :class="fechaPersonalizada ? '' : 'text-gray-400'"
+            :class="fechaPersonalizada ? '' : 'text-gray-500'"
           />
           <Edit3
             v-if="!fechaPersonalizada"
@@ -342,7 +345,7 @@ const guardar = async () => {
             v-model="fechaNativaInput"
             type="date"
             class="w-full text-lg font-bold text-gray-800 outline-none"
-            :class="fechaPersonalizada ? '' : 'text-gray-400'"
+            :class="fechaPersonalizada ? '' : 'text-gray-500'"
           />
         </div>
 
@@ -351,7 +354,7 @@ const guardar = async () => {
             <Check :size="12" class="text-green-600" />
             {{ formatearFecha(fechaPersonalizada) }}
           </span>
-          <span v-else class="text-gray-400"> Por defecto: fecha actual del mes visible </span>
+          <span v-else class="text-gray-500"> Por defecto: fecha actual del mes visible </span>
         </p>
       </div>
 
@@ -359,7 +362,7 @@ const guardar = async () => {
       <div>
         <div class="flex justify-between items-end mb-3">
           <label
-            class="text-xs font-bold text-gray-400 uppercase tracking-wide flex items-center gap-1"
+            class="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-1"
           >
             <Tag :size="14" /> {{ textos.categoriaLabel }}
           </label>
@@ -390,7 +393,7 @@ const guardar = async () => {
 
           <div
             v-if="categoriasActivas.length === 0"
-            class="w-full text-center py-4 bg-gray-100 rounded-2xl border border-dashed border-gray-300 text-gray-400 text-sm"
+            class="w-full text-center py-4 bg-gray-100 rounded-2xl border border-dashed border-gray-300 text-gray-500 text-sm"
           >
             No hay categorías de {{ esIngreso ? 'ingreso' : 'gasto' }} creadas.
           </div>
@@ -400,7 +403,7 @@ const guardar = async () => {
       <!-- Cuotas (solo gastos) -->
       <div v-if="!esIngreso" class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
         <label
-          class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-2 flex items-center gap-1"
+          class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1"
         >
           <Calendar :size="14" /> Cuotas
         </label>
@@ -421,7 +424,7 @@ const guardar = async () => {
             </button>
           </div>
           <div v-if="valorCuota" class="text-right">
-            <p class="text-xs text-gray-400 font-bold uppercase">Valor cuota</p>
+            <p class="text-xs text-gray-500 font-bold uppercase">Valor cuota</p>
             <p class="font-bold text-blue-600">${{ valorCuota }}</p>
           </div>
         </div>
@@ -461,13 +464,13 @@ const guardar = async () => {
         <span>{{ guardando ? 'Guardando...' : textos.boton }}</span>
       </button>
 
-      <p v-if="monto && !descripcion" class="text-center text-xs text-gray-400 font-medium -mt-2">
+      <p v-if="monto && !descripcion" class="text-center text-xs text-gray-500 font-medium -mt-2">
         Agregá una descripción para poder guardar
       </p>
 
       <RouterLink
         to="/import"
-        class="block text-center text-xs font-bold text-gray-400 hover:text-blue-600 transition-colors pb-6"
+        class="block text-center text-xs font-bold text-gray-500 hover:text-blue-600 transition-colors pb-6"
       >
         ¿Muchos gastos? Importalos todos juntos →
       </RouterLink>
