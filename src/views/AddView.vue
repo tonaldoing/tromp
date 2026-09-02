@@ -67,20 +67,20 @@ const colores = computed(() => {
   if (esIngreso.value) {
     return {
       bg: 'bg-gradient-to-b from-green-50 to-gray-50',
-      accent: 'bg-green-600',
-      accentHover: 'hover:bg-green-700',
+      accent: 'bg-positivo',
+      accentHover: 'hover:bg-positivo-hover',
       shadow: 'shadow-green-200',
       text: 'text-green-600',
-      selectedCat: 'bg-green-600 text-white border-green-600',
+      selectedCat: 'bg-positivo text-white border-positivo',
     }
   }
   return {
     bg: 'bg-gradient-to-b from-gray-100 to-gray-50',
-    accent: 'bg-black',
-    accentHover: 'hover:bg-gray-800',
+    accent: 'bg-primario',
+    accentHover: 'hover:bg-primario-hover',
     shadow: 'shadow-gray-300',
     text: 'text-gray-900',
-    selectedCat: 'bg-black text-white border-black',
+    selectedCat: 'bg-primario text-white border-primario',
   }
 })
 
@@ -237,7 +237,7 @@ const guardar = async () => {
           class="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all"
           :class="
             !esIngreso
-              ? 'bg-black text-white shadow-md'
+              ? 'bg-primario text-white shadow-md'
               : 'text-gray-500 hover:text-gray-600 hover:bg-gray-50'
           "
         >
@@ -249,7 +249,7 @@ const guardar = async () => {
           class="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all"
           :class="
             esIngreso
-              ? 'bg-green-600 text-white shadow-md'
+              ? 'bg-positivo text-white shadow-md'
               : 'text-gray-500 hover:text-gray-600 hover:bg-gray-50'
           "
         >
@@ -287,7 +287,7 @@ const guardar = async () => {
       <!-- Descripción -->
       <div
         class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm focus-within:ring-2 transition-all"
-        :class="esIngreso ? 'focus-within:ring-green-200' : 'focus-within:ring-black/5'"
+        :class="esIngreso ? 'focus-within:ring-green-200' : 'focus-within:ring-primario/5'"
       >
         <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
           Descripción
@@ -416,7 +416,7 @@ const guardar = async () => {
               class="w-10 h-10 rounded-xl font-bold text-sm transition-all"
               :class="
                 cuotas === c
-                  ? 'bg-black text-white shadow-md'
+                  ? 'bg-primario text-white shadow-md'
                   : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
               "
             >
@@ -425,7 +425,7 @@ const guardar = async () => {
           </div>
           <div v-if="valorCuota" class="text-right">
             <p class="text-xs text-gray-500 font-bold uppercase">Valor cuota</p>
-            <p class="font-bold text-blue-600">${{ valorCuota }}</p>
+            <p class="font-bold text-primario">${{ valorCuota }}</p>
           </div>
         </div>
       </div>
@@ -470,7 +470,7 @@ const guardar = async () => {
 
       <RouterLink
         to="/import"
-        class="block text-center text-xs font-bold text-gray-500 hover:text-blue-600 transition-colors pb-6"
+        class="block text-center text-xs font-bold text-gray-500 hover:text-primario transition-colors pb-6"
       >
         ¿Muchos gastos? Importalos todos juntos →
       </RouterLink>

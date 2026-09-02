@@ -19,7 +19,7 @@ const anio = computed(() => store.fechaVisual.getFullYear())
   >
     <button
       @click="store.cambiarMes(-1)"
-      class="p-2 rounded-xl hover:bg-gray-100 text-gray-500 hover:text-blue-600 transition-all active:scale-90"
+      class="p-2 rounded-xl hover:bg-gray-100 text-gray-500 hover:text-primario transition-all active:scale-90"
       aria-label="Mes anterior"
     >
       <ChevronLeft :size="24" stroke-width="2.5" />
@@ -36,7 +36,7 @@ const anio = computed(() => store.fechaVisual.getFullYear())
 
     <button
       @click="store.cambiarMes(1)"
-      class="p-2 rounded-xl hover:bg-gray-100 text-gray-500 hover:text-blue-600 transition-all active:scale-90"
+      class="p-2 rounded-xl hover:bg-gray-100 text-gray-500 hover:text-primario transition-all active:scale-90"
       aria-label="Mes siguiente"
     >
       <ChevronRight :size="24" stroke-width="2.5" />

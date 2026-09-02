@@ -176,7 +176,7 @@ const guardarTodo = async () => {
       v-if="!presupuestoConfigurado"
       @click="copiarMesAnterior"
       :disabled="copiando"
-      class="w-full mb-6 py-3 px-4 bg-white border-2 border-gray-200 rounded-2xl font-bold text-gray-700 hover:border-blue-400 hover:bg-blue-50 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+      class="w-full mb-6 py-3 px-4 bg-white border-2 border-gray-200 rounded-2xl font-bold text-gray-700 hover:border-primario hover:bg-blue-50 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
     >
       <Loader2 v-if="copiando" :size="18" class="animate-spin" />
       <Copy v-else :size="18" />
@@ -185,7 +185,7 @@ const guardarTodo = async () => {
 
     <!-- Total Card -->
     <div
-      class="bg-linear-to-br from-blue-600 to-indigo-600 rounded-3xl p-5 shadow-lg shadow-blue-200 mb-8 text-white relative overflow-hidden"
+      class="bg-linear-to-br from-primario to-blue-900 rounded-3xl p-5 shadow-lg shadow-blue-200 mb-8 text-white relative overflow-hidden"
     >
       <div
         class="absolute -right-5 -top-5 bg-white opacity-10 w-32 h-32 rounded-full blur-2xl"
@@ -236,7 +236,7 @@ const guardarTodo = async () => {
 
       <RouterLink
         to="/categories"
-        class="flex items-center justify-center gap-2 p-4 mt-4 text-gray-500 hover:text-blue-600 transition-colors border-2 border-dashed border-gray-200 rounded-2xl hover:border-blue-200"
+        class="flex items-center justify-center gap-2 p-4 mt-4 text-gray-500 hover:text-primario transition-colors border-2 border-dashed border-gray-200 rounded-2xl hover:border-blue-200"
       >
         <span class="text-sm font-bold">Gestionar Categorías</span>
         <ChevronRight :size="16" />
@@ -256,7 +256,7 @@ const guardarTodo = async () => {
               ? 'bg-gray-300 text-gray-500'
               : !hayDiferencias && presupuestoConfigurado
                 ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                : 'bg-black text-white hover:bg-gray-800'
+                : 'bg-primario text-white hover:bg-primario-hover'
         "
       >
         <Loader2 v-if="guardando" class="animate-spin" :size="24" />

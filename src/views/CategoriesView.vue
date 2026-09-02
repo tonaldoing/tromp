@@ -47,23 +47,23 @@ const categoriasActivas = computed(() =>
 const colores = computed(() => {
   if (tabActivo.value === 'ingreso') {
     return {
-      accent: 'bg-green-600',
-      accentHover: 'hover:bg-green-700',
+      accent: 'bg-positivo',
+      accentHover: 'hover:bg-positivo-hover',
       accentLight: 'bg-green-50',
       text: 'text-green-600',
       border: 'border-green-500',
       ring: 'ring-green-500',
-      selected: 'bg-green-600 text-white',
+      selected: 'bg-positivo text-white',
     }
   }
   return {
-    accent: 'bg-black',
-    accentHover: 'hover:bg-gray-800',
+    accent: 'bg-primario',
+    accentHover: 'hover:bg-primario-hover',
     accentLight: 'bg-gray-100',
-    text: 'text-black',
-    border: 'border-black',
-    ring: 'ring-black',
-    selected: 'bg-black text-white',
+    text: 'text-primario',
+    border: 'border-primario',
+    ring: 'ring-primario',
+    selected: 'bg-primario text-white',
   }
 })
 
@@ -168,7 +168,7 @@ const cambiarTab = (tab: 'gasto' | 'ingreso') => {
         class="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-sm font-bold transition-all"
         :class="
           tabActivo === 'gasto'
-            ? 'bg-black text-white shadow-md'
+            ? 'bg-primario text-white shadow-md'
             : 'text-gray-500 hover:text-gray-600'
         "
       >
@@ -186,7 +186,7 @@ const cambiarTab = (tab: 'gasto' | 'ingreso') => {
         class="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-sm font-bold transition-all"
         :class="
           tabActivo === 'ingreso'
-            ? 'bg-green-600 text-white shadow-md'
+            ? 'bg-positivo text-white shadow-md'
             : 'text-gray-500 hover:text-gray-600'
         "
       >
@@ -211,7 +211,7 @@ const cambiarTab = (tab: 'gasto' | 'ingreso') => {
           <component
             :is="modoEdicion ? Edit3 : Plus"
             :size="20"
-            :class="modoEdicion ? colores.text : 'text-black'"
+            :class="modoEdicion ? colores.text : 'text-primario'"
           />
           {{
             modoEdicion
@@ -237,7 +237,7 @@ const cambiarTab = (tab: 'gasto' | 'ingreso') => {
           <input
             v-model="nombre"
             :placeholder="tabActivo === 'ingreso' ? 'Ej: Sueldo' : 'Ej: Supermercado'"
-            class="w-full p-4 pl-12 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-black focus:bg-white outline-none font-bold text-gray-800 text-lg transition-all"
+            class="w-full p-4 pl-12 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-primario focus:bg-white outline-none font-bold text-gray-800 text-lg transition-all"
             @keyup.enter="guardar"
           />
           <div class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">

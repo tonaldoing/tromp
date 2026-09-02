@@ -89,7 +89,11 @@ const gastosPorCategoria = computed(() => {
 
     <div
       class="relative overflow-hidden rounded-3xl p-6 mb-6 shadow-xl transition-all duration-500"
-      :class="balance >= 0 ? 'bg-gray-900 text-white' : 'bg-red-600 text-white'"
+      :class="
+        balance >= 0
+          ? 'bg-gradient-to-br from-primario to-blue-900 text-white'
+          : 'bg-red-600 text-white'
+      "
     >
       <div
         class="absolute -right-10 -top-10 w-40 h-40 bg-white opacity-5 rounded-full blur-2xl"
@@ -110,7 +114,7 @@ const gastosPorCategoria = computed(() => {
           <span>Gastado: {{ Math.round(porcentajeGasto) }}%</span>
           <span>Meta: 100%</span>
         </div>
-        <div class="w-full h-2 bg-black/20 rounded-full overflow-hidden">
+        <div class="w-full h-2 bg-primario/20 rounded-full overflow-hidden">
           <div
             class="h-full rounded-full transition-all duration-1000 ease-out"
             :class="balance >= 0 ? 'bg-emerald-400' : 'bg-white'"
@@ -192,7 +196,7 @@ const gastosPorCategoria = computed(() => {
 
           <div class="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
             <div
-              class="h-full bg-black rounded-full"
+              class="h-full bg-primario rounded-full"
               :style="{ width: `${cat.porcentaje}%` }"
             ></div>
           </div>

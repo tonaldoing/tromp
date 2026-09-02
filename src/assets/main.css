@@ -1,10 +1,31 @@
 @import 'tailwindcss';
 
+/* Tokens del sistema de diseño (paleta "Personal Finance Tracker":
+   azul confianza como primario, verde para ingresos, rojo para gastos).
+   Generan las utilidades bg-primario, text-primario, etc. */
+@theme {
+  --color-primario: #1e40af;
+  --color-primario-hover: #1e3a8a;
+  --color-positivo: #059669;
+  --color-positivo-hover: #047857;
+  --color-negativo: #dc2626;
+  --font-titulo: 'Lexend', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Títulos con la tipográfica de marca (Lexend, diseñada para legibilidad) */
+@layer base {
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-titulo);
+  }
+}
+
 /* Foco visible para navegación con teclado (WCAG 2.4.7).
    Muchos inputs usan outline-none de Tailwind; esta regla lo recupera
    solo cuando el foco viene del teclado, sin ensuciar el uso táctil. */
 *:focus-visible {
-  outline: 2px solid #2563eb !important;
+  outline: 2px solid var(--color-primario) !important;
   outline-offset: 2px;
   border-radius: 4px;
 }

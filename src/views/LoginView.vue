@@ -2,7 +2,7 @@
 import { useAuthStore } from '../stores/auth'
 import { useRouter } from 'vue-router'
 import { watchEffect, ref } from 'vue'
-import { Loader2 } from 'lucide-vue-next'
+import { Loader2, Wallet } from 'lucide-vue-next'
 import { FirebaseError } from 'firebase/app'
 
 const authStore = useAuthStore()
@@ -47,10 +47,16 @@ const handleLogin = async () => {
 
 <template>
   <div class="min-h-screen flex flex-col items-center justify-center bg-gray-900 p-6 text-center">
-    <div class="mb-8 text-7xl animate-bounce">💸</div>
+    <!-- Logo -->
+    <div
+      class="mb-8 w-24 h-24 rounded-3xl bg-gradient-to-br from-blue-600 to-blue-900 flex items-center justify-center shadow-2xl shadow-blue-900/50 border border-blue-400/30"
+      aria-hidden="true"
+    >
+      <Wallet :size="48" class="text-white" stroke-width="1.8" />
+    </div>
 
     <h1 class="text-4xl font-bold text-white mb-2 tracking-tight">Trompocostos</h1>
-    <p class="text-gray-500 mb-12 text-lg">Tu economía, bajo control.</p>
+    <p class="text-gray-400 mb-12 text-lg">Tu economía, bajo control.</p>
 
     <button
       @click="handleLogin"
@@ -78,7 +84,7 @@ const handleLogin = async () => {
       💡 <strong>Tip:</strong> Si se bloquea el popup, serás redirigido automáticamente a Google.
     </div>
 
-    <p class="mt-8 text-xs text-gray-600">
+    <p class="mt-8 text-xs text-gray-400">
       Solo usuarios autorizados. <br />
       Si no tienes cuenta, se creará una nueva.
     </p>

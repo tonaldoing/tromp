@@ -51,7 +51,7 @@ const irAEditar = (id: string) => {
       <RouterLink
         to="/import"
         aria-label="Importar gastos"
-        class="w-11 h-11 flex items-center justify-center bg-white rounded-full border border-gray-200 shadow-sm text-gray-500 hover:text-blue-600 hover:border-blue-200 active:scale-95 transition-all shrink-0"
+        class="w-11 h-11 flex items-center justify-center bg-white rounded-full border border-gray-200 shadow-sm text-gray-500 hover:text-primario hover:border-blue-200 active:scale-95 transition-all shrink-0"
         title="Importar gastos"
       >
         <ClipboardPaste :size="18" />
@@ -129,7 +129,7 @@ const irAEditar = (id: string) => {
         <h3 class="text-lg font-bold text-gray-800">Progreso del Mes</h3>
         <RouterLink
           to="/budget"
-          class="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
+          class="text-xs font-bold text-primario hover:text-primario-hover transition-colors"
         >
           Editar topes
         </RouterLink>
