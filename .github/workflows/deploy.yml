@@ -27,6 +27,17 @@ jobs:
       - name: Build de producción
         run: npm run build
 
+      # Las reglas de Firestore viven en firestore.rules y solo llegan a
+      # producción con este paso: la action de hosting no las despliega
+      - name: Deploy reglas de Firestore
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-sa.json
+        run: |
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$GOOGLE_APPLICATION_CREDENTIALS"
+          npx firebase-tools@14 deploy --only firestore:rules --project trompocostos-app --non-interactive
+          rm -f "$GOOGLE_APPLICATION_CREDENTIALS"
+
       - name: Deploy a Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
