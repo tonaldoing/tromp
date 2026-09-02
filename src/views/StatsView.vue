@@ -21,7 +21,7 @@ import {
 const router = useRouter()
 
 const store = useGastosStore()
-const { gastosDelMes, ingresosDelMes, categorias } = storeToRefs(store)
+const { gastosDelMes, ingresosDelMes, categorias, cargando } = storeToRefs(store)
 
 const iconoDeCategoria = (nombre: string) => {
   const cat = categorias.value.find((c) => c.nombre === nombre)
@@ -70,24 +70,42 @@ const gastosPorCategoria = computed(() => {
 </script>
 
 <template>
-  <div class="px-5 pt-6 pb-28 bg-gray-50 min-h-screen">
+  <div class="px-5 pt-6 pb-28 bg-gray-50 dark:bg-slate-900 min-h-screen">
     <!-- Header -->
     <header class="flex items-center gap-4 mb-6">
       <button
         @click="router.back()"
         aria-label="Volver"
-        class="w-11 h-11 flex items-center justify-center bg-white rounded-full border border-gray-200 shadow-sm text-gray-700 active:scale-95 transition-transform"
+        class="w-11 h-11 flex items-center justify-center bg-white dark:bg-slate-800 rounded-full border border-gray-200 dark:border-slate-700 shadow-sm text-gray-700 dark:text-slate-300 active:scale-95 transition-transform"
       >
         <ArrowLeft :size="20" />
       </button>
       <div class="flex-1">
-        <h1 class="text-2xl font-extrabold text-gray-900 tracking-tight">Estadísticas</h1>
+        <h1 class="text-2xl font-extrabold text-gray-900 dark:text-slate-100 tracking-tight">
+          Estadísticas
+        </h1>
       </div>
     </header>
 
-    <MonthSelector class="shadow-sm border border-gray-100" />
+    <MonthSelector class="shadow-sm border border-gray-100 dark:border-slate-700" />
+
+    <!-- Loading state -->
+    <div v-if="cargando" class="space-y-4">
+      <div
+        class="h-44 bg-white dark:bg-slate-800 rounded-3xl animate-pulse border border-gray-100 dark:border-slate-700"
+      ></div>
+      <div class="grid grid-cols-2 gap-4">
+        <div
+          class="h-28 bg-white dark:bg-slate-800 rounded-2xl animate-pulse border border-gray-100 dark:border-slate-700"
+        ></div>
+        <div
+          class="h-28 bg-white dark:bg-slate-800 rounded-2xl animate-pulse border border-gray-100 dark:border-slate-700"
+        ></div>
+      </div>
+    </div>
 
     <div
+      v-else
       class="relative overflow-hidden rounded-3xl p-6 mb-6 shadow-xl transition-all duration-500"
       :class="
         balance >= 0
@@ -133,68 +151,74 @@ const gastosPorCategoria = computed(() => {
       </div>
     </div>
 
-    <div class="grid grid-cols-2 gap-4 mb-8">
+    <div v-if="!cargando" class="grid grid-cols-2 gap-4 mb-8">
       <div
-        class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between h-28"
+        class="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 flex flex-col justify-between h-28"
       >
         <div class="flex items-center gap-2">
           <div
-            class="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center text-green-600"
+            class="w-8 h-8 rounded-full bg-green-50 dark:bg-green-950/50 flex items-center justify-center text-green-600 dark:text-green-400"
           >
             <ArrowDownLeft :size="16" stroke-width="3" />
           </div>
-          <span class="text-xs font-bold text-gray-500 uppercase">Ingresos</span>
+          <span class="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase"
+            >Ingresos</span
+          >
         </div>
-        <p class="text-xl font-extrabold text-gray-800 tracking-tight">
+        <p class="text-xl font-extrabold text-gray-800 dark:text-slate-200 tracking-tight">
           $ {{ formatearDinero(totalIngresos) }}
         </p>
       </div>
 
       <div
-        class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between h-28"
+        class="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 flex flex-col justify-between h-28"
       >
         <div class="flex items-center gap-2">
-          <div class="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center text-red-600">
+          <div
+            class="w-8 h-8 rounded-full bg-red-50 dark:bg-red-950/50 flex items-center justify-center text-red-600 dark:text-red-400"
+          >
             <ArrowUpRight :size="16" stroke-width="3" />
           </div>
-          <span class="text-xs font-bold text-gray-500 uppercase">Gastos</span>
+          <span class="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase">Gastos</span>
         </div>
-        <p class="text-xl font-extrabold text-gray-800 tracking-tight">
+        <p class="text-xl font-extrabold text-gray-800 dark:text-slate-200 tracking-tight">
           $ {{ formatearDinero(totalGastos) }}
         </p>
       </div>
     </div>
 
-    <div v-if="totalGastos > 0">
+    <div v-if="!cargando && totalGastos > 0">
       <div class="flex items-center gap-2 mb-4">
-        <TrendingUp :size="20" class="text-gray-800" />
-        <h3 class="text-lg font-bold text-gray-800">Top Gastos</h3>
+        <TrendingUp :size="20" class="text-gray-800 dark:text-slate-200" />
+        <h3 class="text-lg font-bold text-gray-800 dark:text-slate-200">Top Gastos</h3>
       </div>
 
       <div class="space-y-4">
         <div
           v-for="cat in gastosPorCategoria"
           :key="cat.nombre"
-          class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm"
+          class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm"
         >
           <div class="flex items-center justify-between mb-2">
             <div class="flex items-center gap-3">
               <div
-                class="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center border border-gray-100 text-gray-600"
+                class="w-10 h-10 rounded-xl bg-gray-50 dark:bg-slate-900 flex items-center justify-center border border-gray-100 dark:border-slate-700 text-gray-600 dark:text-slate-300"
               >
                 <component :is="iconoDeCategoria(cat.nombre)" :size="20" stroke-width="2" />
               </div>
               <div>
-                <p class="font-bold text-gray-800 text-sm">{{ cat.nombre }}</p>
-                <p class="text-xs text-gray-500 font-medium">
+                <p class="font-bold text-gray-800 dark:text-slate-200 text-sm">{{ cat.nombre }}</p>
+                <p class="text-xs text-gray-500 dark:text-slate-400 font-medium">
                   {{ cat.porcentaje.toFixed(1) }}% del total
                 </p>
               </div>
             </div>
-            <p class="font-bold text-gray-900">$ {{ formatearDinero(cat.monto) }}</p>
+            <p class="font-bold text-gray-900 dark:text-slate-100">
+              $ {{ formatearDinero(cat.monto) }}
+            </p>
           </div>
 
-          <div class="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+          <div class="w-full h-1.5 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
             <div
               class="h-full bg-primario rounded-full"
               :style="{ width: `${cat.porcentaje}%` }"
@@ -204,7 +228,7 @@ const gastosPorCategoria = computed(() => {
       </div>
     </div>
 
-    <div v-else class="text-center py-12 opacity-50">
+    <div v-else-if="!cargando" class="text-center py-12 opacity-50">
       <p class="text-sm font-medium">Aún no hay gastos para analizar este mes.</p>
     </div>
   </div>

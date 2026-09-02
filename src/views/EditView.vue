@@ -155,23 +155,25 @@ const eliminar = async () => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50 pb-24">
+  <div class="min-h-screen bg-gray-50 dark:bg-slate-900 pb-24">
     <div class="px-5 pt-6 mb-8 flex justify-between items-center">
       <div class="flex items-center gap-4">
         <button
           @click="router.back()"
           aria-label="Volver"
-          class="w-11 h-11 flex items-center justify-center bg-white rounded-full border border-gray-200 shadow-sm text-gray-700 active:scale-95 transition-transform"
+          class="w-11 h-11 flex items-center justify-center bg-white dark:bg-slate-800 rounded-full border border-gray-200 dark:border-slate-700 shadow-sm text-gray-700 dark:text-slate-300 active:scale-95 transition-transform"
         >
           <ArrowLeft :size="20" />
         </button>
-        <h1 class="text-2xl font-extrabold text-gray-900 tracking-tight">Editar</h1>
+        <h1 class="text-2xl font-extrabold text-gray-900 dark:text-slate-100 tracking-tight">
+          Editar
+        </h1>
       </div>
 
       <button
         @click="eliminar"
         aria-label="Borrar movimiento"
-        class="w-11 h-11 flex items-center justify-center bg-red-50 rounded-full text-red-500 hover:bg-red-100 transition-colors"
+        class="w-11 h-11 flex items-center justify-center bg-red-50 dark:bg-red-950/50 rounded-full text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors"
       >
         <Trash2 :size="20" />
       </button>
@@ -181,13 +183,15 @@ const eliminar = async () => {
       <!-- Aviso de cuota -->
       <div
         v-if="esCuota"
-        class="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-start gap-3"
+        class="bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded-2xl p-4 flex items-start gap-3"
       >
-        <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
+        <div
+          class="w-8 h-8 bg-blue-100 dark:bg-blue-900/60 rounded-full flex items-center justify-center shrink-0"
+        >
           <Layers :size="16" class="text-primario" />
         </div>
         <div>
-          <p class="font-bold text-blue-800 text-sm">
+          <p class="font-bold text-blue-800 dark:text-blue-200 text-sm">
             Cuota {{ gastoOriginal?.cuotaActual }} de {{ gastoOriginal?.totalCuotas }}
           </p>
           <p class="text-primario text-xs mt-1">
@@ -199,13 +203,15 @@ const eliminar = async () => {
       <!-- Toggle Gasto/Ingreso (las cuotas son siempre gastos) -->
       <div
         v-if="!esCuota"
-        class="bg-white p-1.5 rounded-full flex shadow-sm border border-gray-100"
+        class="bg-white dark:bg-slate-800 p-1.5 rounded-full flex shadow-sm border border-gray-100 dark:border-slate-700"
       >
         <button
           @click="cambiarTipo('gasto')"
           class="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-sm font-bold transition-all"
           :class="
-            !esIngreso ? 'bg-primario text-white shadow-md' : 'text-gray-500 hover:text-gray-600'
+            !esIngreso
+              ? 'bg-primario text-white shadow-md'
+              : 'text-gray-500 dark:text-slate-400 hover:text-gray-600 dark:hover:text-slate-300'
           "
         >
           <TrendingDown :size="16" />
@@ -215,7 +221,9 @@ const eliminar = async () => {
           @click="cambiarTipo('ingreso')"
           class="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-sm font-bold transition-all"
           :class="
-            esIngreso ? 'bg-positivo text-white shadow-md' : 'text-gray-500 hover:text-gray-600'
+            esIngreso
+              ? 'bg-positivo text-white shadow-md'
+              : 'text-gray-500 dark:text-slate-400 hover:text-gray-600 dark:hover:text-slate-300'
           "
         >
           <TrendingUp :size="16" />
@@ -224,52 +232,60 @@ const eliminar = async () => {
       </div>
 
       <!-- Monto -->
-      <div class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
-        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1"
+      <div
+        class="bg-white dark:bg-slate-800 p-4 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm"
+      >
+        <label
+          class="block text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wide mb-1"
           >Monto</label
         >
         <div class="relative flex items-center">
-          <span class="text-2xl font-bold text-gray-500 mr-1">$</span>
+          <span class="text-2xl font-bold text-gray-500 dark:text-slate-400 mr-1">$</span>
           <input
             :value="formatearMontoInput(monto)"
             @input="onInputMonto"
             type="text"
             inputmode="decimal"
-            class="w-full text-3xl font-black text-gray-900 outline-none placeholder-gray-200"
+            class="w-full text-3xl font-black text-gray-900 dark:text-slate-100 outline-none placeholder-gray-200 dark:placeholder-slate-700"
           />
         </div>
       </div>
 
       <!-- Descripción -->
-      <div class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
-        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2"
+      <div
+        class="bg-white dark:bg-slate-800 p-4 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm"
+      >
+        <label
+          class="block text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wide mb-2"
           >Descripción</label
         >
         <input
           v-model="descripcion"
           type="text"
-          class="w-full text-lg font-bold text-gray-800 outline-none"
+          class="w-full text-lg font-bold text-gray-800 dark:text-slate-200 outline-none"
         />
       </div>
 
       <!-- Fecha -->
-      <div class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
+      <div
+        class="bg-white dark:bg-slate-800 p-4 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm"
+      >
         <label
-          class="flex items-center gap-1 text-xs font-bold text-gray-500 uppercase tracking-wide mb-2"
+          class="flex items-center gap-1 text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wide mb-2"
         >
           <Calendar :size="14" /> Fecha
         </label>
         <input
           v-model="fechaNativaInput"
           type="date"
-          class="w-full text-lg font-bold text-gray-800 outline-none"
+          class="w-full text-lg font-bold text-gray-800 dark:text-slate-200 outline-none"
         />
       </div>
 
       <!-- Categoría -->
       <div>
         <label
-          class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-1"
+          class="block text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wide mb-3 flex items-center gap-1"
         >
           <Tag :size="14" /> {{ esIngreso ? 'Fuente' : 'Categoría' }}
         </label>
@@ -284,7 +300,7 @@ const eliminar = async () => {
                 ? esIngreso
                   ? 'bg-positivo text-white border-positivo shadow-lg'
                   : 'bg-primario text-white border-primario shadow-lg'
-                : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-300 border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-500'
             "
           >
             <component :is="getIcono(cat.icono)" :size="18" stroke-width="2.5" />
@@ -293,12 +309,12 @@ const eliminar = async () => {
 
           <div
             v-if="categoriasActivas.length === 0"
-            class="w-full text-center py-4 bg-gray-100 rounded-2xl border border-dashed border-gray-300 text-gray-500 text-sm"
+            class="w-full text-center py-4 bg-gray-100 dark:bg-slate-700 rounded-2xl border border-dashed border-gray-300 dark:border-slate-600 text-gray-500 dark:text-slate-400 text-sm"
           >
             No hay categorías de {{ esIngreso ? 'ingreso' : 'gasto' }} creadas.
           </div>
         </div>
-        <p v-if="!categoria" class="text-xs text-gray-500 font-medium mt-2">
+        <p v-if="!categoria" class="text-xs text-gray-500 dark:text-slate-400 font-medium mt-2">
           Elegí una categoría para poder guardar
         </p>
       </div>
@@ -306,7 +322,7 @@ const eliminar = async () => {
       <button
         @click="actualizar"
         :disabled="guardando || !monto || !descripcion || !categoria"
-        class="w-full bg-primario text-white py-4 rounded-2xl text-xl font-bold shadow-lg shadow-blue-200 active:scale-95 transition-transform flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        class="w-full bg-primario text-white py-4 rounded-2xl text-xl font-bold shadow-lg shadow-blue-200 dark:shadow-none active:scale-95 transition-transform flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <Save :size="20" />
         <span>{{ guardando ? 'Guardando...' : 'Guardar Cambios' }}</span>

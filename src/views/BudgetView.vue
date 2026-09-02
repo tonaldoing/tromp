@@ -20,7 +20,8 @@ import {
 const store = useGastosStore()
 const ui = useUiStore()
 const router = useRouter()
-const { presupuestos, categoriasGasto, presupuestoConfigurado, fechaVisual } = storeToRefs(store)
+const { presupuestos, categoriasGasto, presupuestoConfigurado, fechaVisual, cargando } =
+  storeToRefs(store)
 
 const valoresLocales = ref<Record<string, number>>({})
 const guardando = ref(false)
@@ -127,19 +128,21 @@ const guardarTodo = async () => {
 </script>
 
 <template>
-  <div class="px-5 pt-6 pb-40 bg-gray-50 min-h-screen">
+  <div class="px-5 pt-6 pb-40 bg-gray-50 dark:bg-slate-900 min-h-screen">
     <!-- Header -->
     <header class="flex items-center gap-4 mb-6">
       <button
         @click="router.back()"
         aria-label="Volver"
-        class="w-11 h-11 flex items-center justify-center bg-white rounded-full border border-gray-200 shadow-sm text-gray-700 active:scale-95 transition-transform"
+        class="w-11 h-11 flex items-center justify-center bg-white dark:bg-slate-800 rounded-full border border-gray-200 dark:border-slate-700 shadow-sm text-gray-700 dark:text-slate-300 active:scale-95 transition-transform"
       >
         <ArrowLeft :size="20" />
       </button>
       <div class="flex-1">
-        <h1 class="text-2xl font-extrabold text-gray-900 tracking-tight">Presupuesto Mensual</h1>
-        <p class="text-sm text-gray-500 font-medium">
+        <h1 class="text-2xl font-extrabold text-gray-900 dark:text-slate-100 tracking-tight">
+          Presupuesto Mensual
+        </h1>
+        <p class="text-sm text-gray-500 dark:text-slate-400 font-medium">
           Define cuánto quieres gastar por categoría cada mes
         </p>
       </div>
@@ -151,23 +154,27 @@ const guardarTodo = async () => {
     <!-- Estado del Presupuesto -->
     <div
       v-if="presupuestoConfigurado"
-      class="bg-green-50 border-2 border-green-200 rounded-2xl p-4 mb-6 flex items-center gap-3"
+      class="bg-green-50 dark:bg-green-950/50 border-2 border-green-200 dark:border-green-800 rounded-2xl p-4 mb-6 flex items-center gap-3"
     >
-      <CheckCircle2 :size="20" class="text-green-600 shrink-0" />
+      <CheckCircle2 :size="20" class="text-green-600 dark:text-green-400 shrink-0" />
       <div class="flex-1 min-w-0">
-        <p class="text-sm font-bold text-green-800">Presupuesto configurado</p>
-        <p class="text-xs text-green-600">Has establecido tus topes para {{ mesActual }}</p>
+        <p class="text-sm font-bold text-green-800 dark:text-green-200">Presupuesto configurado</p>
+        <p class="text-xs text-green-600 dark:text-green-400">
+          Has establecido tus topes para {{ mesActual }}
+        </p>
       </div>
     </div>
 
     <div
       v-else
-      class="bg-amber-50 border-2 border-amber-200 rounded-2xl p-4 mb-6 flex items-center gap-3"
+      class="bg-amber-50 dark:bg-amber-950/50 border-2 border-amber-200 dark:border-amber-800 rounded-2xl p-4 mb-6 flex items-center gap-3"
     >
-      <AlertCircle :size="20" class="text-amber-600 shrink-0" />
+      <AlertCircle :size="20" class="text-amber-600 dark:text-amber-400 shrink-0" />
       <div class="flex-1 min-w-0">
-        <p class="text-sm font-bold text-amber-800">Sin presupuesto</p>
-        <p class="text-xs text-amber-600">Aún no has configurado topes para {{ mesActual }}</p>
+        <p class="text-sm font-bold text-amber-800 dark:text-amber-200">Sin presupuesto</p>
+        <p class="text-xs text-amber-600 dark:text-amber-400">
+          Aún no has configurado topes para {{ mesActual }}
+        </p>
       </div>
     </div>
 
@@ -176,7 +183,7 @@ const guardarTodo = async () => {
       v-if="!presupuestoConfigurado"
       @click="copiarMesAnterior"
       :disabled="copiando"
-      class="w-full mb-6 py-3 px-4 bg-white border-2 border-gray-200 rounded-2xl font-bold text-gray-700 hover:border-primario hover:bg-blue-50 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+      class="w-full mb-6 py-3 px-4 bg-white dark:bg-slate-800 border-2 border-gray-200 dark:border-slate-700 rounded-2xl font-bold text-gray-700 dark:text-slate-300 hover:border-primario hover:bg-blue-50 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
     >
       <Loader2 v-if="copiando" :size="18" class="animate-spin" />
       <Copy v-else :size="18" />
@@ -185,7 +192,7 @@ const guardarTodo = async () => {
 
     <!-- Total Card -->
     <div
-      class="bg-linear-to-br from-primario to-blue-900 rounded-3xl p-5 shadow-lg shadow-blue-200 mb-8 text-white relative overflow-hidden"
+      class="bg-linear-to-br from-primario to-blue-900 rounded-3xl p-5 shadow-lg shadow-blue-200 dark:shadow-none mb-8 text-white relative overflow-hidden"
     >
       <div
         class="absolute -right-5 -top-5 bg-white opacity-10 w-32 h-32 rounded-full blur-2xl"
@@ -204,31 +211,42 @@ const guardarTodo = async () => {
 
     <!-- Categorías -->
     <div class="space-y-4">
+      <!-- Loading state -->
+      <template v-if="cargando && categoriasGasto.length === 0">
+        <div
+          v-for="i in 4"
+          :key="'skel-' + i"
+          class="h-20 bg-white dark:bg-slate-800 rounded-2xl animate-pulse border border-gray-100 dark:border-slate-700"
+        ></div>
+      </template>
+
       <div
         v-for="cat in categoriasGasto"
         :key="cat.id"
-        class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 transition-all focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent"
+        class="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 flex items-center gap-4 transition-all focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent"
       >
         <div
-          class="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center text-gray-600 border border-gray-100 shrink-0"
+          class="w-12 h-12 rounded-full bg-gray-50 dark:bg-slate-900 flex items-center justify-center text-gray-600 dark:text-slate-300 border border-gray-100 dark:border-slate-700 shrink-0"
         >
           <component :is="getIcono(cat.icono)" :size="20" stroke-width="2" />
         </div>
 
         <div class="flex-1 min-w-0">
-          <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
+          <label
+            class="block text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wide mb-1"
+          >
             {{ cat.nombre }}
           </label>
 
           <div class="relative flex items-center">
-            <span class="text-gray-500 font-bold text-lg mr-1">$</span>
+            <span class="text-gray-500 dark:text-slate-400 font-bold text-lg mr-1">$</span>
             <input
               type="text"
               inputmode="numeric"
               :value="formatearValorVisual(valoresLocales[cat.nombre] ?? 0)"
               @input="(e) => onInputDinero(e, cat.nombre)"
               placeholder="0"
-              class="w-full bg-transparent border-none p-0 text-xl font-bold text-gray-900 placeholder-gray-200 focus:ring-0 outline-none"
+              class="w-full bg-transparent border-none p-0 text-xl font-bold text-gray-900 dark:text-slate-100 placeholder-gray-200 dark:placeholder-slate-700 focus:ring-0 outline-none"
             />
           </div>
         </div>
@@ -236,7 +254,7 @@ const guardarTodo = async () => {
 
       <RouterLink
         to="/categories"
-        class="flex items-center justify-center gap-2 p-4 mt-4 text-gray-500 hover:text-primario transition-colors border-2 border-dashed border-gray-200 rounded-2xl hover:border-blue-200"
+        class="flex items-center justify-center gap-2 p-4 mt-4 text-gray-500 dark:text-slate-400 hover:text-primario transition-colors border-2 border-dashed border-gray-200 dark:border-slate-700 rounded-2xl hover:border-blue-200 dark:hover:border-blue-800"
       >
         <span class="text-sm font-bold">Gestionar Categorías</span>
         <ChevronRight :size="16" />
@@ -248,14 +266,14 @@ const guardarTodo = async () => {
       <button
         @click="guardarTodo"
         :disabled="guardando || (!hayDiferencias && presupuestoConfigurado)"
-        class="w-full py-4 rounded-2xl text-lg font-bold shadow-xl shadow-blue-900/10 transform transition-all active:scale-95 flex justify-center items-center gap-3 border border-gray-100"
+        class="w-full py-4 rounded-2xl text-lg font-bold shadow-xl shadow-blue-900/10 dark:shadow-none transform transition-all active:scale-95 flex justify-center items-center gap-3 border border-gray-100 dark:border-slate-700"
         :class="
           exito
             ? 'bg-green-500 text-white'
             : guardando
-              ? 'bg-gray-300 text-gray-500'
+              ? 'bg-gray-300 text-gray-500 dark:text-slate-400'
               : !hayDiferencias && presupuestoConfigurado
-                ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                ? 'bg-gray-200 dark:bg-slate-700 text-gray-500 dark:text-slate-400 cursor-not-allowed'
                 : 'bg-primario text-white hover:bg-primario-hover'
         "
       >

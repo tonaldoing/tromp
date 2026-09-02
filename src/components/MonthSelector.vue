@@ -15,28 +15,30 @@ const anio = computed(() => store.fechaVisual.getFullYear())
 
 <template>
   <div
-    class="flex items-center justify-between p-2 bg-white rounded-2xl shadow-sm border border-gray-100 mb-6"
+    class="flex items-center justify-between p-2 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 mb-6"
   >
     <button
       @click="store.cambiarMes(-1)"
-      class="p-2 rounded-xl hover:bg-gray-100 text-gray-500 hover:text-primario transition-all active:scale-90"
+      class="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-500 dark:text-slate-400 hover:text-primario transition-all active:scale-90"
       aria-label="Mes anterior"
     >
       <ChevronLeft :size="24" stroke-width="2.5" />
     </button>
 
     <div class="flex flex-col items-center">
-      <span class="text-lg font-extrabold text-gray-800 capitalize tracking-tight">
+      <span
+        class="text-lg font-extrabold text-gray-800 dark:text-slate-200 capitalize tracking-tight"
+      >
         {{ nombreMes }}
       </span>
-      <span class="text-xs font-bold text-gray-500">
+      <span class="text-xs font-bold text-gray-500 dark:text-slate-400">
         {{ anio }}
       </span>
     </div>
 
     <button
       @click="store.cambiarMes(1)"
-      class="p-2 rounded-xl hover:bg-gray-100 text-gray-500 hover:text-primario transition-all active:scale-90"
+      class="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-500 dark:text-slate-400 hover:text-primario transition-all active:scale-90"
       aria-label="Mes siguiente"
     >
       <ChevronRight :size="24" stroke-width="2.5" />

@@ -21,6 +21,33 @@
   }
 }
 
+/* El tema sigue la preferencia del sistema; color-scheme hace que los
+   controles nativos (date picker, scrollbars) acompañen al modo activo */
+:root {
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+  }
+}
+
+/* Transición entre pantallas (RouterView) */
+.pagina-enter-active,
+.pagina-leave-active {
+  transition:
+    opacity 150ms ease,
+    transform 150ms ease;
+}
+.pagina-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+.pagina-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
 /* Foco visible para navegación con teclado (WCAG 2.4.7).
    Muchos inputs usan outline-none de Tailwind; esta regla lo recupera
    solo cuando el foco viene del teclado, sin ensuciar el uso táctil. */
