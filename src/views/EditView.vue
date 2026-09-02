@@ -184,13 +184,13 @@ const eliminar = async () => {
         class="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-start gap-3"
       >
         <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
-          <Layers :size="16" class="text-blue-600" />
+          <Layers :size="16" class="text-primario" />
         </div>
         <div>
           <p class="font-bold text-blue-800 text-sm">
             Cuota {{ gastoOriginal?.cuotaActual }} de {{ gastoOriginal?.totalCuotas }}
           </p>
-          <p class="text-blue-600 text-xs mt-1">
+          <p class="text-primario text-xs mt-1">
             Los cambios afectan solo a esta cuota, no al resto del plan.
           </p>
         </div>
@@ -205,7 +205,7 @@ const eliminar = async () => {
           @click="cambiarTipo('gasto')"
           class="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-sm font-bold transition-all"
           :class="
-            !esIngreso ? 'bg-black text-white shadow-md' : 'text-gray-500 hover:text-gray-600'
+            !esIngreso ? 'bg-primario text-white shadow-md' : 'text-gray-500 hover:text-gray-600'
           "
         >
           <TrendingDown :size="16" />
@@ -215,7 +215,7 @@ const eliminar = async () => {
           @click="cambiarTipo('ingreso')"
           class="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-sm font-bold transition-all"
           :class="
-            esIngreso ? 'bg-green-600 text-white shadow-md' : 'text-gray-500 hover:text-gray-600'
+            esIngreso ? 'bg-positivo text-white shadow-md' : 'text-gray-500 hover:text-gray-600'
           "
         >
           <TrendingUp :size="16" />
@@ -282,8 +282,8 @@ const eliminar = async () => {
             :class="
               categoria === cat.nombre
                 ? esIngreso
-                  ? 'bg-green-600 text-white border-green-600 shadow-lg'
-                  : 'bg-black text-white border-black shadow-lg'
+                  ? 'bg-positivo text-white border-positivo shadow-lg'
+                  : 'bg-primario text-white border-primario shadow-lg'
                 : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
             "
           >
@@ -306,7 +306,7 @@ const eliminar = async () => {
       <button
         @click="actualizar"
         :disabled="guardando || !monto || !descripcion || !categoria"
-        class="w-full bg-blue-600 text-white py-4 rounded-2xl text-xl font-bold shadow-lg shadow-blue-200 active:scale-95 transition-transform flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        class="w-full bg-primario text-white py-4 rounded-2xl text-xl font-bold shadow-lg shadow-blue-200 active:scale-95 transition-transform flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <Save :size="20" />
         <span>{{ guardando ? 'Guardando...' : 'Guardar Cambios' }}</span>

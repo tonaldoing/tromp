@@ -41,7 +41,7 @@ const iconoToast = (tipo: string) => {
       class="pointer-events-auto flex items-start gap-3 p-4 rounded-2xl shadow-xl border text-sm font-bold"
       :class="
         t.tipo === 'exito'
-          ? 'bg-green-600 border-green-700 text-white'
+          ? 'bg-positivo border-green-700 text-white'
           : t.tipo === 'error'
             ? 'bg-red-600 border-red-700 text-white'
             : 'bg-gray-900 border-gray-800 text-white'
@@ -80,7 +80,7 @@ const iconoToast = (tipo: string) => {
       <div class="flex items-start gap-4 mb-5">
         <div
           class="w-11 h-11 rounded-full flex items-center justify-center shrink-0"
-          :class="confirmacion.destructiva ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-blue-600'"
+          :class="confirmacion.destructiva ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-primario'"
         >
           <AlertTriangle :size="22" />
         </div>
@@ -106,7 +106,7 @@ const iconoToast = (tipo: string) => {
           :class="
             confirmacion.destructiva
               ? 'bg-red-600 hover:bg-red-700 shadow-red-200'
-              : 'bg-black hover:bg-gray-800 shadow-gray-300'
+              : 'bg-primario hover:bg-primario-hover shadow-gray-300'
           "
         >
           {{ confirmacion.textoConfirmar }}

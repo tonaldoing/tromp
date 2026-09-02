@@ -67,7 +67,7 @@ watch(
           <RouterLink
             to="/"
             class="group flex flex-col items-center justify-center gap-1 min-w-12 px-1 text-gray-500 transition-colors hover:text-gray-700"
-            active-class="!text-black"
+            active-class="!text-primario"
           >
             <div
               class="transform transition-transform duration-200 group-[.router-link-active]:scale-110"
@@ -80,7 +80,7 @@ watch(
           <RouterLink
             to="/stats"
             class="group flex flex-col items-center justify-center gap-1 min-w-12 px-1 text-gray-500 transition-colors hover:text-gray-700"
-            active-class="!text-black"
+            active-class="!text-primario"
           >
             <div
               class="transform transition-transform duration-200 group-[.router-link-active]:scale-110"
@@ -94,7 +94,7 @@ watch(
             <RouterLink
               to="/add"
               aria-label="Agregar movimiento"
-              class="flex items-center justify-center w-14 h-14 bg-black text-white rounded-full shadow-xl shadow-blue-900/20 transform transition-transform active:scale-90 hover:scale-105 border-[4px] border-gray-50"
+              class="flex items-center justify-center w-14 h-14 bg-primario text-white rounded-full shadow-xl shadow-blue-900/20 transform transition-transform active:scale-90 hover:scale-105 border-[4px] border-gray-50"
             >
               <Plus :size="28" stroke-width="3" />
             </RouterLink>
@@ -103,7 +103,7 @@ watch(
           <RouterLink
             to="/budget"
             class="group flex flex-col items-center justify-center gap-1 min-w-12 px-1 text-gray-500 transition-colors hover:text-gray-700"
-            active-class="!text-black"
+            active-class="!text-primario"
           >
             <div
               class="transform transition-transform duration-200 group-[.router-link-active]:scale-110"
@@ -116,7 +116,7 @@ watch(
           <RouterLink
             to="/categories"
             class="group flex flex-col items-center justify-center gap-1 min-w-12 px-1 text-gray-500 transition-colors hover:text-gray-700"
-            active-class="!text-black"
+            active-class="!text-primario"
           >
             <div
               class="transform transition-transform duration-200 group-[.router-link-active]:scale-110"

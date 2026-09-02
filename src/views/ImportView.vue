@@ -136,7 +136,7 @@ const importarMas = () => {
       <div class="flex flex-col gap-3 w-full max-w-xs">
         <button
           @click="verMesDestino"
-          class="w-full py-4 bg-black text-white rounded-2xl font-bold shadow-lg active:scale-95 transition-transform"
+          class="w-full py-4 bg-primario text-white rounded-2xl font-bold shadow-lg active:scale-95 transition-transform"
         >
           Ver {{ nombreMesDestino }}
         </button>
@@ -156,7 +156,7 @@ const importarMas = () => {
       >
         <button
           @click="cambiarMesDestino(-1)"
-          class="p-2 rounded-xl hover:bg-gray-100 text-gray-500 hover:text-blue-600 transition-all active:scale-90"
+          class="p-2 rounded-xl hover:bg-gray-100 text-gray-500 hover:text-primario transition-all active:scale-90"
           aria-label="Mes anterior"
         >
           <ChevronLeft :size="24" stroke-width="2.5" />
@@ -175,7 +175,7 @@ const importarMas = () => {
 
         <button
           @click="cambiarMesDestino(1)"
-          class="p-2 rounded-xl hover:bg-gray-100 text-gray-500 hover:text-blue-600 transition-all active:scale-90"
+          class="p-2 rounded-xl hover:bg-gray-100 text-gray-500 hover:text-primario transition-all active:scale-90"
           aria-label="Mes siguiente"
         >
           <ChevronRight :size="24" stroke-width="2.5" />
@@ -184,7 +184,7 @@ const importarMas = () => {
 
       <!-- Textarea -->
       <div
-        class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm mb-4 focus-within:ring-2 focus-within:ring-black/5"
+        class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm mb-4 focus-within:ring-2 focus-within:ring-primario/5"
       >
         <label
           class="flex items-center gap-1 text-xs font-bold text-gray-500 uppercase tracking-wide mb-2"
@@ -223,7 +223,7 @@ Nafta 40000"
             class="flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-bold transition-all active:scale-95"
             :class="
               categoriaDefectoFinal === cat.nombre
-                ? 'bg-black text-white border-black shadow-md'
+                ? 'bg-primario text-white border-primario shadow-md'
                 : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
             "
           >
@@ -308,7 +308,7 @@ Nafta 40000"
           :class="
             importando || lineasValidas.length === 0
               ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-              : 'bg-black text-white hover:bg-gray-800'
+              : 'bg-primario text-white hover:bg-primario-hover'
           "
         >
           <Loader2 v-if="importando" class="animate-spin" :size="22" />
