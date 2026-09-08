@@ -6,7 +6,7 @@ import { useUiStore } from '../stores/ui'
 import { storeToRefs } from 'pinia'
 import MonthSelector from '../components/MonthSelector.vue'
 import { getIcono } from '../utils/icons'
-import { formatearDinero } from '../utils/formato'
+import { formatearDinero, formatearMontoInput, limpiarMontoInput } from '../utils/formato'
 import { generarResumenMd } from '../utils/exportar'
 
 import {
@@ -16,7 +16,11 @@ import {
   LogOut,
   ClipboardPaste,
   FileDown,
+  Landmark,
+  Check,
+  X,
 } from 'lucide-vue-next'
+import { ref } from 'vue'
 
 const store = useGastosStore()
 const authStore = useAuthStore()
@@ -32,7 +36,37 @@ const {
   estadoPresupuesto,
   presupuestoConfigurado,
   categoriasGasto,
+  saldoEstimado,
 } = storeToRefs(store)
+
+// --- Calibración del saldo de cuenta ---
+const calibrando = ref(false)
+const saldoInput = ref('')
+
+const onInputSaldo = (event: Event) => {
+  const input = event.target as HTMLInputElement
+  const cleaned = limpiarMontoInput(input.value)
+  if (cleaned === null) {
+    input.value = formatearMontoInput(saldoInput.value)
+    return
+  }
+  saldoInput.value = cleaned
+  input.value = formatearMontoInput(cleaned)
+}
+
+const guardarSaldo = async () => {
+  const valor = Number(saldoInput.value)
+  if (!saldoInput.value || isNaN(valor)) return
+  try {
+    await store.calibrarSaldo(valor)
+    ui.toast('Saldo calibrado: la app lo proyecta desde ahora ✔', 'exito')
+    calibrando.value = false
+    saldoInput.value = ''
+  } catch (error) {
+    console.error('Error calibrando saldo:', error)
+    ui.toast('No se pudo guardar el saldo. Intentá de nuevo.', 'error')
+  }
+}
 
 const formatearFecha = (fecha: Date) => {
   return new Intl.DateTimeFormat('es-AR', {
@@ -167,6 +201,65 @@ const exportarMes = async () => {
           <span class="text-lg font-bold text-gray-800 dark:text-slate-200"
             >${{ formatearDinero(totalGastosDelMes) }}</span
           >
+        </div>
+      </div>
+
+      <!-- Saldo estimado de la cuenta -->
+      <div class="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700">
+        <div v-if="!calibrando" class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2 text-gray-500 dark:text-slate-400 min-w-0">
+            <Landmark :size="14" class="shrink-0" />
+            <span class="text-xs font-bold uppercase tracking-wide truncate">Saldo en cuenta</span>
+          </div>
+          <div class="flex items-center gap-3 shrink-0">
+            <span
+              v-if="saldoEstimado !== null"
+              class="font-bold text-gray-900 dark:text-slate-100"
+              :class="saldoEstimado < 0 ? 'text-red-600 dark:text-red-400' : ''"
+            >
+              {{ saldoEstimado < 0 ? '-' : '' }}${{ formatearDinero(Math.abs(saldoEstimado)) }}
+            </span>
+            <button
+              @click="calibrando = true"
+              class="text-xs font-bold text-primario hover:text-primario-hover transition-colors"
+            >
+              {{ saldoEstimado === null ? 'Configurar' : 'Calibrar' }}
+            </button>
+          </div>
+        </div>
+
+        <div v-else>
+          <div class="flex items-center gap-2">
+            <span class="text-lg font-bold text-gray-500 dark:text-slate-400">$</span>
+            <input
+              :value="formatearMontoInput(saldoInput)"
+              @input="onInputSaldo"
+              @keyup.enter="guardarSaldo"
+              type="text"
+              inputmode="decimal"
+              placeholder="Saldo real de tu cuenta hoy"
+              class="flex-1 min-w-0 text-lg font-bold text-gray-900 dark:text-slate-100 bg-transparent placeholder-gray-300 dark:placeholder-slate-600 outline-none"
+            />
+            <button
+              @click="guardarSaldo"
+              :disabled="!saldoInput"
+              aria-label="Guardar saldo"
+              class="w-9 h-9 flex items-center justify-center rounded-full bg-primario text-white active:scale-95 transition-all disabled:opacity-40"
+            >
+              <Check :size="16" stroke-width="3" />
+            </button>
+            <button
+              @click="((calibrando = false), (saldoInput = ''))"
+              aria-label="Cancelar"
+              class="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-slate-400 active:scale-95 transition-all"
+            >
+              <X :size="16" />
+            </button>
+          </div>
+          <p class="text-xs text-gray-500 dark:text-slate-400 mt-2">
+            Poné el saldo que ves en tu banco ahora. La app lo va a proyectar sumando y restando
+            cada movimiento que cargues de acá en adelante.
+          </p>
         </div>
       </div>
     </div>
