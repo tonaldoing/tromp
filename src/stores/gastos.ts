@@ -45,11 +45,19 @@ export interface BorradorMovimiento {
   cuotas: number
 }
 
+// Ancla del saldo real de la cuenta: el usuario "calibra" con el saldo
+// del banco en un momento dado y la app lo proyecta con los movimientos
+export interface SaldoAncla {
+  saldo: number
+  fecha: Date
+}
+
 export const useGastosStore = defineStore('gastos', () => {
   // --- ESTADO ---
   const gastos = ref<Gasto[]>([])
   const presupuestos = ref<Record<string, number>>({})
   const categorias = ref<Categoria[]>([])
+  const saldoAncla = ref<SaldoAncla | null>(null)
 
   const fechaVisual = ref(new Date())
   const cargando = ref(false)
@@ -130,6 +138,10 @@ export const useGastosStore = defineStore('gastos', () => {
                 ...c,
                 tipo: c.tipo || 'gasto',
               }))
+
+            saldoAncla.value = d.saldoAncla?.fecha
+              ? { saldo: d.saldoAncla.saldo as number, fecha: d.saldoAncla.fecha.toDate() }
+              : null
           }
         },
         (error) => {
@@ -179,6 +191,7 @@ export const useGastosStore = defineStore('gastos', () => {
     gastos.value = []
     categorias.value = []
     presupuestos.value = {}
+    saldoAncla.value = null
     unsubscribes.forEach((u) => u())
     unsubscribes = []
     presupuestosUnsub = null
@@ -349,6 +362,30 @@ export const useGastosStore = defineStore('gastos', () => {
   })
 
   // ===========================================
+  // SALDO DE CUENTA
+  // ===========================================
+
+  // Guarda el saldo real del banco AHORA como punto de calibración
+  const calibrarSaldo = async (saldoActual: number) => {
+    await setDoc(
+      getConfigRef(),
+      { saldoAncla: { saldo: saldoActual, fecha: Timestamp.now() } },
+      { merge: true },
+    )
+  }
+
+  // Saldo proyectado: ancla + neto de los movimientos posteriores a la
+  // calibración (los futuros, como una previsión, no cuentan hasta su fecha)
+  const saldoEstimado = computed(() => {
+    if (!saldoAncla.value) return null
+    const ahora = new Date()
+    const neto = gastos.value
+      .filter((g) => g.fecha > saldoAncla.value!.fecha && g.fecha <= ahora)
+      .reduce((sum, g) => sum + (g.tipo === 'ingreso' ? g.monto : -g.monto), 0)
+    return saldoAncla.value.saldo + neto
+  })
+
+  // ===========================================
   // COMPUTED / GETTERS
   // ===========================================
 
@@ -468,6 +505,11 @@ export const useGastosStore = defineStore('gastos', () => {
     guardarPresupuestos,
     copiarPresupuestoMesAnterior,
     presupuestoConfigurado,
+
+    // Saldo de cuenta
+    saldoAncla,
+    saldoEstimado,
+    calibrarSaldo,
 
     // Gastos
     agregarMovimiento,
