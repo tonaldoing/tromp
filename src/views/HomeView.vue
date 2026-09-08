@@ -2,15 +2,25 @@
 import { useRouter, RouterLink } from 'vue-router'
 import { useGastosStore } from '../stores/gastos'
 import { useAuthStore } from '../stores/auth'
+import { useUiStore } from '../stores/ui'
 import { storeToRefs } from 'pinia'
 import MonthSelector from '../components/MonthSelector.vue'
 import { getIcono } from '../utils/icons'
 import { formatearDinero } from '../utils/formato'
+import { generarResumenMd } from '../utils/exportar'
 
-import { ArrowUpRight, ArrowDownLeft, Inbox, LogOut, ClipboardPaste } from 'lucide-vue-next'
+import {
+  ArrowUpRight,
+  ArrowDownLeft,
+  Inbox,
+  LogOut,
+  ClipboardPaste,
+  FileDown,
+} from 'lucide-vue-next'
 
 const store = useGastosStore()
 const authStore = useAuthStore()
+const ui = useUiStore()
 const router = useRouter()
 
 const {
@@ -36,6 +46,27 @@ const formatearFecha = (fecha: Date) => {
 const irAEditar = (id: string) => {
   router.push(`/edit/${id}`)
 }
+
+// Exporta el resumen del mes visible en Markdown: lo copia al portapapeles,
+// con descarga de archivo como plan B si el portapapeles no está disponible
+const exportarMes = async () => {
+  const md = generarResumenMd(store.fechaVisual, movimientosDelMes.value)
+  const nombreMes = new Intl.DateTimeFormat('es-AR', { month: 'long' }).format(store.fechaVisual)
+
+  try {
+    await navigator.clipboard.writeText(md)
+    ui.toast(`Resumen de ${nombreMes} copiado al portapapeles 📋`, 'exito')
+  } catch {
+    const blob = new Blob([md], { type: 'text/markdown' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `trompocostos-${store.fechaVisual.getFullYear()}-${String(store.fechaVisual.getMonth() + 1).padStart(2, '0')}.md`
+    a.click()
+    URL.revokeObjectURL(url)
+    ui.toast(`Resumen de ${nombreMes} descargado como archivo`, 'info')
+  }
+}
 </script>
 
 <template>
@@ -47,6 +78,15 @@ const irAEditar = (id: string) => {
           Hola, {{ authStore.userProfile?.displayName?.split(' ')[0] || 'Usuario' }}
         </h1>
       </div>
+
+      <button
+        @click="exportarMes"
+        aria-label="Exportar resumen del mes"
+        class="w-11 h-11 flex items-center justify-center bg-white dark:bg-slate-800 rounded-full border border-gray-200 dark:border-slate-700 shadow-sm text-gray-500 dark:text-slate-400 hover:text-primario hover:border-blue-200 dark:hover:border-blue-800 active:scale-95 transition-all shrink-0"
+        title="Exportar resumen del mes"
+      >
+        <FileDown :size="18" />
+      </button>
 
       <RouterLink
         to="/import"
