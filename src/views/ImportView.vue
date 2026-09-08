@@ -18,12 +18,28 @@ import {
   AlertCircle,
   Tag,
   Calendar,
+  TrendingUp,
+  TrendingDown,
 } from 'lucide-vue-next'
 
 const store = useGastosStore()
 const ui = useUiStore()
-const { categoriasGasto } = storeToRefs(store)
+const { categoriasGasto, categoriasIngreso } = storeToRefs(store)
 const router = useRouter()
+
+// Tipo de movimiento a importar
+const tipo = ref<'gasto' | 'ingreso'>('gasto')
+const esIngreso = computed(() => tipo.value === 'ingreso')
+const categoriasActivas = computed(() =>
+  esIngreso.value ? categoriasIngreso.value : categoriasGasto.value,
+)
+
+const cambiarTipo = (nuevoTipo: 'gasto' | 'ingreso') => {
+  if (tipo.value === nuevoTipo) return
+  tipo.value = nuevoTipo
+  // Las categorías del otro tipo no aplican: resetear la default
+  categoriaDefecto.value = ''
+}
 
 // Mes destino: por defecto el mes que viene
 const hoy = new Date()
@@ -44,14 +60,15 @@ const nombreMesDestino = computed(() => {
 // Categoría por defecto para líneas sin categoría
 const categoriaDefecto = ref('')
 const categoriaDefectoFinal = computed(
-  () => categoriaDefecto.value || categoriasGasto.value[0]?.nombre || 'Varios',
+  () => categoriaDefecto.value || categoriasActivas.value[0]?.nombre || 'Varios',
 )
 
 const texto = ref('')
 const importando = ref(false)
 const importados = ref(0)
+const tipoImportado = ref<'gasto' | 'ingreso'>('gasto')
 
-const lineas = computed(() => parsearLineas(texto.value, categoriasGasto.value))
+const lineas = computed(() => parsearLineas(texto.value, categoriasActivas.value))
 const lineasValidas = computed(() => lineas.value.filter((l) => l.ok))
 const lineasConError = computed(() => lineas.value.filter((l) => !l.ok))
 
@@ -60,7 +77,7 @@ const totalAImportar = computed(() =>
 )
 
 const iconoDe = (nombreCategoria: string) => {
-  const cat = categoriasGasto.value.find((c) => c.nombre === nombreCategoria)
+  const cat = categoriasActivas.value.find((c) => c.nombre === nombreCategoria)
   return getIcono(cat?.icono || 'star')
 }
 
@@ -75,12 +92,13 @@ const importar = async () => {
           l.monto!,
           l.descripcion!,
           l.categoria || categoriaDefectoFinal.value,
-          'gasto',
-          l.cuotas || 1,
+          tipo.value,
+          esIngreso.value ? 1 : l.cuotas || 1,
           mesDestino.value,
         ),
       ),
     )
+    tipoImportado.value = tipo.value
     importados.value = lineasValidas.value.length
     texto.value = ''
   } catch (error) {
@@ -117,13 +135,43 @@ const importarMas = () => {
       </button>
       <div class="flex-1">
         <h1 class="text-2xl font-extrabold text-gray-900 dark:text-slate-100 tracking-tight">
-          Importar Gastos
+          Importar Movimientos
         </h1>
         <p class="text-sm text-gray-500 dark:text-slate-400 font-medium">
-          Pegá tu previsión y cargala completa de una vez
+          Pegá tu extracto o previsión y cargalo todo de una vez
         </p>
       </div>
     </header>
+
+    <!-- Toggle Gasto/Ingreso -->
+    <div
+      class="bg-white dark:bg-slate-800 p-1.5 rounded-full flex shadow-sm border border-gray-100 dark:border-slate-700 mb-4"
+    >
+      <button
+        @click="cambiarTipo('gasto')"
+        class="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-sm font-bold transition-all"
+        :class="
+          !esIngreso
+            ? 'bg-primario text-white shadow-md'
+            : 'text-gray-500 dark:text-slate-400 hover:text-gray-600 dark:hover:text-slate-300'
+        "
+      >
+        <TrendingDown :size="16" />
+        Gastos
+      </button>
+      <button
+        @click="cambiarTipo('ingreso')"
+        class="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-sm font-bold transition-all"
+        :class="
+          esIngreso
+            ? 'bg-positivo text-white shadow-md'
+            : 'text-gray-500 dark:text-slate-400 hover:text-gray-600 dark:hover:text-slate-300'
+        "
+      >
+        <TrendingUp :size="16" />
+        Ingresos
+      </button>
+    </div>
 
     <!-- Estado de éxito -->
     <div v-if="importados > 0" class="flex flex-col items-center justify-center py-16 text-center">
@@ -133,7 +181,7 @@ const importarMas = () => {
         <CheckCircle2 :size="40" stroke-width="1.5" />
       </div>
       <p class="font-bold text-gray-800 dark:text-slate-200 text-xl">
-        ¡{{ importados }} gastos importados!
+        ¡{{ importados }} {{ tipoImportado === 'ingreso' ? 'ingresos' : 'gastos' }} importados!
       </p>
       <p class="text-sm text-gray-500 dark:text-slate-400 mt-1 mb-8">
         Quedaron cargados en {{ nombreMesDestino }}.
@@ -195,15 +243,16 @@ const importarMas = () => {
         <label
           class="flex items-center gap-1 text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wide mb-2"
         >
-          <ClipboardPaste :size="14" /> Un gasto por línea
+          <ClipboardPaste :size="14" /> Un {{ esIngreso ? 'ingreso' : 'gasto' }} por línea
         </label>
         <textarea
           v-model="texto"
           rows="7"
-          placeholder="Netflix 15000 Servicios
-Zapatillas 120.000 Varios 3x
-Súper del mes 85.500,50 Supermercado
-Nafta 40000"
+          :placeholder="
+            esIngreso
+              ? 'Sueldo enero 2.820.111 Sueldo\nFreelance proyecto 304.000 Freelance\nReintegro cuentas 80.000'
+              : 'Netflix 15000 Servicios\nZapatillas 120.000 Varios 3x\nSúper del mes 85.500,50 Supermercado\nNafta 40000'
+          "
           class="w-full text-base font-medium text-gray-800 dark:text-slate-200 placeholder-gray-300 dark:placeholder-slate-600 outline-none resize-y leading-relaxed"
         ></textarea>
       </div>
@@ -211,10 +260,11 @@ Nafta 40000"
       <p class="text-xs text-gray-500 dark:text-slate-400 font-medium mb-6 px-1">
         Formato:
         <span class="font-bold text-gray-500 dark:text-slate-400"
-          >descripción monto [categoría] [3x]</span
+          >descripción monto [categoría]{{ esIngreso ? '' : ' [3x]' }}</span
         >
-        — la categoría es opcional (se usa la de abajo si falta) y "3x" divide el monto en cuotas
-        mensuales.
+        — la categoría es opcional (se usa la de abajo si falta){{
+          esIngreso ? '.' : ' y "3x" divide el monto en cuotas mensuales.'
+        }}
       </p>
 
       <!-- Categoría por defecto -->
@@ -228,13 +278,15 @@ Nafta 40000"
         </label>
         <div class="flex flex-wrap gap-2">
           <button
-            v-for="cat in categoriasGasto"
+            v-for="cat in categoriasActivas"
             :key="cat.id"
             @click="categoriaDefecto = cat.nombre"
             class="flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-bold transition-all active:scale-95"
             :class="
               categoriaDefectoFinal === cat.nombre
-                ? 'bg-primario text-white border-primario shadow-md'
+                ? esIngreso
+                  ? 'bg-positivo text-white border-positivo shadow-md'
+                  : 'bg-primario text-white border-primario shadow-md'
                 : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-300 border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-500'
             "
           >
@@ -288,7 +340,7 @@ Nafta 40000"
                     {{ l.categoria || categoriaDefectoFinal }}
                   </span>
                   <span
-                    v-if="l.cuotas"
+                    v-if="l.cuotas && !esIngreso"
                     class="text-xs font-bold text-blue-500 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/50 px-1.5 py-0.5 rounded-md"
                   >
                     {{ l.cuotas }} cuotas
@@ -296,8 +348,15 @@ Nafta 40000"
                 </div>
               </div>
             </div>
-            <p class="font-extrabold text-gray-900 dark:text-slate-100 shrink-0">
-              ${{ formatearDinero(l.monto!) }}
+            <p
+              class="font-extrabold shrink-0"
+              :class="
+                esIngreso
+                  ? 'text-green-600 dark:text-green-400'
+                  : 'text-gray-900 dark:text-slate-100'
+              "
+            >
+              {{ esIngreso ? '+' : '' }}${{ formatearDinero(l.monto!) }}
             </p>
           </div>
 
@@ -325,7 +384,9 @@ Nafta 40000"
           :class="
             importando || lineasValidas.length === 0
               ? 'bg-gray-200 dark:bg-slate-700 text-gray-500 dark:text-slate-400 cursor-not-allowed'
-              : 'bg-primario text-white hover:bg-primario-hover'
+              : esIngreso
+                ? 'bg-positivo text-white hover:bg-positivo-hover'
+                : 'bg-primario text-white hover:bg-primario-hover'
           "
         >
           <Loader2 v-if="importando" class="animate-spin" :size="22" />
@@ -335,8 +396,8 @@ Nafta 40000"
               importando
                 ? 'Importando...'
                 : lineasValidas.length === 0
-                  ? 'Pegá tus gastos arriba'
-                  : `Importar ${lineasValidas.length} gastos ($${formatearDinero(totalAImportar)})`
+                  ? `Pegá tus ${esIngreso ? 'ingresos' : 'gastos'} arriba`
+                  : `Importar ${lineasValidas.length} ${esIngreso ? 'ingresos' : 'gastos'} ($${formatearDinero(totalAImportar)})`
             }}
           </span>
         </button>
